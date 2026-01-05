@@ -8,46 +8,47 @@ MDTT 是一个用于形式化描述元编程、编译器架构及异构计算的
 
 **核心特征：**
 
-- **异构性 (Heterogeneity)**: 显式区分宿主语言 ($M$) 与目标语言 ($L$)。
+- **异构性 (Heterogeneity)**: 显式区分宿主语言 ( $M$ ) 与目标语言 ( $L$ )。
 - **二元性 (Duality)**: 严格分离 Code (黑盒/安全) 与 AST (白盒/可分析)。
-- **完整链路 (Full Pipeline)**: 涵盖从 文本 ($\mathcal{S}$) 到 AST ($\mathcal{A}$) 再到 Code ($\mathcal{C}$) 的全过程，并引入 错误上下文 ($\mathcal{E}$) 处理副作用。
+- **完整链路 (Full Pipeline)**: 涵盖从 文本 ( $\mathcal{S}$ ) 到 AST ( $\mathcal{A}$ ) 再到 Code ( $\mathcal{C}$ ) 的全过程，并引入 错误上下文 ( $\mathcal{E}$ ) 处理副作用。
 
 ## 2. 基础定义 (Foundations)
 
 - $\mathcal{L}$ (Languages): 语言标签的集合。
-- $M \in \mathcal{L}$: Host Language (Machine/Meta)，当前内存与执行环境的持有者。
-- $L \in \mathcal{L}$: Target Language (Object/Source)，被表示、编译或解释的语言。
+- $M \in \mathcal{L}$ : Host Language (Machine/Meta)，当前内存与执行环境的持有者。
+- $L \in \mathcal{L}$ : Target Language (Object/Source)，被表示、编译或解释的语言。
 
 **$\mathcal{U}$ (Universes):**
 
-- $\mathcal{U}^M$: 宿主语言的类型全集。
-- $\mathcal{U}^L$: 目标语言的类型全集。
+- $\mathcal{U}^M$ : 宿主语言的类型全集。
+- $\mathcal{U}^L$ : 目标语言的类型全集。
 
 **Base Types:** $\mathbb{N}, \mathbb{B}, \mathbb{S}$ (Nat, Bool, String).
 
 ## 3. 记法系统 (Notation System)
 
 标准形式：
+
 $$
-X_{\text{Host}}^{\text{Target}}\langle \text{Type} \rangle
+X_{\mathrm{Host}}^{\mathrm{Target}}\langle \mathrm{Type} \rangle
 $$
 
 ### 3.1 隐式与显式规则 (Implicit/Explicit Rules)
 
 **Host 下标 (Subscript):**
 
-- **默认省略**: 在单机/单宿主环境下，默认指代当前宿主 $M$。
-- **显式书写**: 仅在涉及跨宿主操作（如分布式计算、代码传输 $\mathcal{C}_{M1} \to \mathcal{C}_{M2}$）时使用。
+- **默认省略**: 在单机/单宿主环境下，默认指代当前宿主 $M$ 。
+- **显式书写**: 仅在涉及跨宿主操作（如分布式计算、交叉编译、代码传输）时使用。
 
 **Target 上标 (Superscript):**
 
-- **显式保留**: 推荐始终标注，以清晰区分源语言 ($S$)、目标语言 ($T$) 和元语言 ($M$)。
+- **显式保留**: 推荐始终标注，以清晰区分源语言 ( $S$ )、目标语言 ( $T$ ) 和元语言 ( $M$ )。
 
 **类型上下文继承 (Context Inheritance):**
 
-- **外部**: 在构造器外部，$\tau$ 默认为 $\tau^M$ (Host Type)。
-- **内部**: 在带有上标 $L$ 的构造器内部（即 $\langle \dots \rangle$ 中），类型上下文自动切换为 $L$。
-- **示例**: $\mathcal{C}^L\langle \mathbb{N} \to \mathbb{N} \rangle$ 等价于 $\mathcal{C}^L\langle \mathbb{N}^L \to^L \mathbb{N}^L \rangle$。
+- **外部**: 在构造器外部， $\tau$ 默认为 $\tau^{M}$ (Host Type)。
+- **内部**: 在带有上标 $L$ 的构造器内部（即 $\langle \dots \rangle$ 中），类型上下文自动切换为 $L$ 。
+- **示例**: $\mathcal{C}^L\langle \mathbb{N} \to \mathbb{N} \rangle$ 等价于 $\mathcal{C}^L\langle \mathbb{N}^L \to^L \mathbb{N}^L \rangle$ 。
 
 ## 4. 类型构造 (Type Constructors)
 
@@ -143,11 +144,11 @@ $$
 \mathfrak{M}^L : \mathcal{C}^L\langle \alpha \to \beta \rangle \to \alpha^L \to \mathcal{C}^L\langle \beta \rangle
 $$
 
-部分求值。给定代码和静态参数（Host Value $\alpha^L$），生成残差代码。
+部分求值。给定代码和静态参数（Host Value $\alpha^L$ ），生成残差代码。
 
 ## 6. 二村映象应用 (Futamura Projections)
 
-设定: Source $S$, Target $T$, Host $M$.
+设定: Source $S$ , Target $T$ , Host $M$ .
 
 ### 6.1 解释器 (Standard Interpreter)
 
@@ -166,7 +167,7 @@ $$
 
 - **定义**: 用户编写的函数，遍历 AST 并生成目标代码。
 - **性质**: 可能会在编译期失败。
-- **第一二村映象**: $\text{target\_code} = \mathfrak{M}^M(\text{Int}, \text{source\_ast})$
+- **第一二村映象**: $\mathrm{target\_code} = \mathfrak{M}^M(\mathrm{Int}, \mathrm{source\_ast})$
 
 ### 6.3 编译器生成器 (Cogen)
 
@@ -175,34 +176,41 @@ $$
 $$
 
 - **类型展开**:
+
 $$
-(\mathcal{A}^S \times \text{In} \to \mathcal{E}\langle \text{Out} \rangle) \to (\mathcal{A}^S \to \mathcal{E}\langle \mathcal{C}^T\langle \text{In} \to \text{Out} \rangle \rangle)
+(\mathcal{A}^S \times \mathrm{In} \to \mathcal{E}\langle \mathrm{Out} \rangle) \to (\mathcal{A}^S \to \mathcal{E}\langle \mathcal{C}^T\langle \mathrm{In} \to \mathrm{Out} \rangle \rangle)
 $$
-- **第二二村映象**: $\text{Comp} = \mathfrak{M}^M(\mathfrak{M}, \text{Int})$
+
+- **第二二村映象**: $\mathrm{Comp} = \mathfrak{M}^M(\mathfrak{M}, \mathrm{Int})$
 
 ## 7. 附录：类型推导规则 (Typing Rules)
 
 ### T-Lift
+
 $$
 \frac{\Gamma \vdash t : \tau^M}{\Gamma \vdash \uparrow^L t : \mathcal{C}^L\langle \tau \rangle}
 $$
 
 ### T-Parse
+
 $$
 \frac{\Gamma \vdash s : \mathcal{S}^L}{\Gamma \vdash \text{parse}(s) : \mathcal{E}\langle \mathcal{A}^L \rangle}
 $$
 
 ### T-Check
+
 $$
 \frac{\Gamma \vdash a : \mathcal{A}^L}{\Gamma \vdash \text{check}(a) : \mathcal{E}\langle \exists \tau. \mathcal{C}^L\langle \tau \rangle \rangle}
 $$
 
 ### T-Run
+
 $$
 \frac{\Gamma \vdash c : \mathcal{C}^L\langle \tau \rangle \quad M \succeq L}{\Gamma \vdash \llbracket c \rrbracket^L : \mathcal{E}\langle \tau^M \rangle}
 $$
 
 ### T-Mix
+
 $$
 \frac{\Gamma \vdash f : \mathcal{C}^L\langle \alpha \to \beta \rangle \quad \Gamma \vdash x : \alpha^L}{\Gamma \vdash \mathfrak{M}^L(f, x) : \mathcal{C}^L\langle \beta \rangle}
 $$

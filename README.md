@@ -10,7 +10,7 @@ MDTT 是一个用于形式化描述元编程、编译器架构及异构计算的
 
 **核心特征：**
 
-- **异构性 (Heterogeneity)**: 显式区分宿主语言 ( $M$ ) 与目标语言 ( $L$ )。
+- **异构性 (Heterogeneity)**: 显式区分宿主语言 ($M$) 与目标语言 ($L$)。
 - **二元性 (Duality)**: 严格分离 Code (黑盒/安全) 与 AST (白盒/可分析)。
 - **强类型约束**: 利用依赖类型 (DT) 精确捕捉语言实现细节（如环境依赖、阶段约束、效应），将编译器架构问题转化为类型检查问题
 
@@ -35,7 +35,7 @@ MDTT 将“平台”(Platform) 视为类型系统的一个核心索引。
 
 ## 3. 记法系统 (Notation System)
 
-标准形式： $X_{\mathrm{Host}}^{\mathrm{Target}}\langle \mathrm{Type} \rangle$
+标准形式： $X_{\text{Host}}^{\text{Target}}\langle \text{Type} \rangle$
 
 该记法本质上是泛型参数的**简化标记 (Syntactic Sugar)**，用于避免在尖括号 $\langle \dots \rangle$ 中罗列过多的泛型参数，从而提高公式的可读性。
 
@@ -142,9 +142,9 @@ $$
 
 ### 5.5 特化 (Mix)
 
-$$
-\mathfrak{M}_M^L : 𝒞^L\langle \alpha \to \beta \rangle \to 𝒜^L\langle \alpha \rangle \to 𝒞^L\langle \beta \rangle
-$$
+$
+𝔐_M^L : 𝒞^L\langle \alpha \to \beta \rangle \to 𝒜^L\langle \alpha \rangle \to 𝒞^L\langle \beta \rangle
+$
 
 编译期特化 (Partial Evaluation)。
 - **语义**: 将类型为 $\alpha$ 的静态值 (在宿主中以 AST $𝒜^L\langle \alpha \rangle$ 的形式存在) “烧录”进函数代码中，生成残差代码。
@@ -194,7 +194,7 @@ $$
 
 ### T-Mix
 $$
-\frac{\Gamma \vdash f : 𝒞^L\langle \alpha \to \beta \rangle \quad \Gamma \vdash x : 𝒜^L\langle \alpha \rangle}{\Gamma \vdash \mathfrak{M}_M^L(f, x) : 𝒞^L\langle \beta \rangle}
+\frac{\Gamma \vdash f : 𝒞^L\langle \alpha \to \beta \rangle \quad \Gamma \vdash x : 𝒜^L\langle \alpha \rangle}{\Gamma \vdash 𝔐_M^L(f, x) : 𝒞^L\langle \beta \rangle}
 $$
 
 ### T-Run
@@ -271,13 +271,13 @@ $$ (f \ggg g)(x) \equiv f(x) \textbf{ bind } g $$
 *   **Target ($T$)**: 产物（编译器）**未来**生成的代码所运行的机器。
 
 **2. MDTT 映射关系表**
-我们将上述物理角色映射到 MDTT 的类型系统 $C^{\text{Run}} \langle \text{Src} \to C^{\text{Dest}} \rangle$ 中。
+我们将上述物理角色映射到 MDTT 的类型系统 $𝒞^{\text{Run}} \langle \text{Src} \to 𝒞^{\text{Dest}} \rangle$ 中。
 
 | 机器角色 | 含义 | MDTT 类型位置 | 说明 |
 | :--- | :--- | :--- | :--- |
 | **Build ($B$)** | 执行环境 | **上下文 (Context)** | 所有的推导步骤 $\Gamma \vdash \dots$ 都隐含在 $B$ 环境中发生。 |
-| **Host ($H$)** | 运行平台 | **外层容器 ($C^H$)** | 最终产物 `artifact` 的类型外壳，表示它是一个运行在 $H$ 上的二进制。 |
-| **Target ($T$)** | 目标平台 | **内层容器 ($C^T$)** | 编译器函数返回值的类型外壳，表示它生成 $T$ 平台的代码。 |
+| **Host ($H$)** | 运行平台 | **外层容器 ($𝒞^H$)** | 最终产物 `artifact` 的类型外壳，表示它是一个运行在 $H$ 上的二进制。 |
+| **Target ($T$)** | 目标平台 | **内层容器 ($𝒞^T$)** | 编译器函数返回值的类型外壳，表示它生成 $T$ 平台的代码。 |
 
 **3. 构建过程推导 (The Derivation)**
 
@@ -305,7 +305,7 @@ $$ \text{goal} : 𝒞^H\langle \text{Compiler}\langle S, T \rangle \rangle $$
 **类型检查 (Type Check)**:
 MDTT 的类型系统能够自动推导 `run` 操作的结果类型：
 $$ \mathrm{run}_B(\text{builder}) : ℰ\langle \underbrace{\text{Compiler}\langle L, H \rangle}_{\text{Builder 逻辑: } L \to H} \rangle $$
-即 $ℰ\langle 𝒜^L \to 𝒞^H \rangle$。将其应用到 `source` ($𝒜^L$, 且其逻辑语义为 $S \to T$) 后：
+即 $ℰ\langle 𝒜^L \to 𝒞^H \rangle$ 。将其应用到 `source` ($𝒜^L$, 且其逻辑语义为 $S \to T$) 后：
 $$ \therefore \text{artifact} : 𝒞^H\langle \text{Compiler}\langle S, T \rangle \rangle $$
 
 这就清晰地解释了为什么我们在 $B$ 上操作，却得到了 $H$ 的类型——因为 `builder` 的**目标属性** ($H$) 决定了产物的**宿主属性** ($H$)。这就是所谓的 "Shift" (转换)。
@@ -324,14 +324,14 @@ $$ \therefore \text{artifact} : 𝒞^H\langle \text{Compiler}\langle S, T \rangl
 **第一映射 (生成目标代码)**
 目标：将解释器针对特定源码进行特化。
 
-为此，我们引入 **特化算子 ($\mathfrak{M}$)**。
+为此，我们引入 **特化算子 ($𝔐$)**。
 这是元语言 $M$ 的核心原语（Primitive），负责执行“将静态数据烧录进代码”的动作。
 - 签名: $𝒞^L\langle \alpha \to \beta \rangle \to 𝒜^L\langle \alpha \rangle \to 𝒞^L\langle \beta \rangle$
 
-现在我们直接使用 $\mathfrak{M}$ 对解释器进行特化：
+现在我们直接使用 $𝔐$ 对解释器进行特化：
 - **函数**: $\text{interpreter}$ (视为接受源码 $𝒜$ 和输入 $D$ 的函数)
 - **输入**: $\text{source}$ (具体的源码 AST)
-$$ \text{code}^T = \mathfrak{M}_M^T(\text{interpreter}, \text{source}) $$
+$ \text{code}^T = 𝔐_M^T(\text{interpreter}, \text{source}) $
 *结果*: 固定了源码的解释器 $\equiv$ 目标代码。
 
 **第二映射 (生成编译器)**
@@ -341,28 +341,28 @@ $$ \text{code}^T = \mathfrak{M}_M^T(\text{interpreter}, \text{source}) $$
 - **类型**: $𝒞^L\langle 𝒜^L \to \text{StaticInput} \to 𝒜^L \rangle$
 - **假设**: 此处假设目标语言 $L$ 具备表示自身 AST 的能力 (如 Lisp 或具有反射能力的语言)，或者我们通过外部手段将宿主 AST 映射为目标数据结构。
 - **说明**: 
-    - 第一个参数 ($𝒜^L$) 是待特化的源程序 AST。
-    - 第二个参数 ($\text{StaticInput}$) 是编译期已知的静态输入数据。
-    - 返回值 ($𝒜^L$) 是特化后的残差程序 AST。
+    - 第一个参数 (类型 $𝒜^L$) 是待特化的源程序 AST。
+    - 第二个参数 (类型 $\text{StaticInput}$) 是编译期已知的静态输入数据。
+    - 返回值 (类型 $𝒜^L$) 是特化后的残差程序 AST。
 
 在此阶段，我们将 **特化程序 ($\text{mix}$)** 作为被操作的对象。
 
-$$ \text{compiler}_M^T = \mathfrak{M}_M^M(\text{mix}, \text{interpreterSrc}) $$
+$ \text{compiler}_M^T = 𝔐_M^M(\text{mix}, \text{interpreterSrc}) $
 
 **深度解析：为什么 Mix 算子可以作用于 mix 项？**
-观察 $\mathfrak{M}$ 的签名与 $\text{mix}$ 的类型，我们可以发现它们完美的类型匹配：
-1.  **算子要求**: $\mathfrak{M}$ 需要一个函数代码 $𝒞\langle \alpha \to \beta \rangle$ 和一个参数值 $\alpha$。
+观察 $𝔐$ 的签名与 $\text{mix}$ 的类型，我们可以发现它们完美的类型匹配：
+1.  **算子要求**: $𝔐$ 需要一个函数代码 $𝒞\langle \alpha \to \beta \rangle$ 和一个参数值 $\alpha$。
 2.  **程序提供**: $\text{mix}$ 本身就是一个代码项，其类型为 $𝒞\langle 𝒜^L \to (\text{StaticInput} \to 𝒜^L) \rangle$。
     - 这里泛型 $\alpha$ 被实例化为 $𝒜^L$ (AST)。
 3.  **输入匹配**: 我们提供的 $\text{interpreterSrc}$ 恰好是一个 AST 值。
-4.  **结论**: $\mathfrak{M}(\text{mix}, \text{interpreterSrc})$ 合法，返回值的类型为 $𝒞\langle \text{StaticInput} \to 𝒜^L \rangle$。
+4.  **结论**: $𝔐(\text{mix}, \text{interpreterSrc})$ 合法，返回值的类型为 $𝒞\langle \text{StaticInput} \to 𝒜^L \rangle$。
     - 这个返回值的物理含义是：一个接受“静态输入”（即源代码）并输出“残差程序 AST”的函数。
     - 这在 MDTT 架构中对应于**编译器的前端与优化器** (从源码到特化 AST)。
-    - 若要得到产出二进制目标代码的完整编译器，需将运行该生成器得到的结果接入 `emit` 阶段：$\lambda s. \mathrm{emit}_S^T(\mathrm{run}_M(\text{compiler}) s)$。（注：此处忽略了 Monad 包装）。
+    - 若要得到产出二进制目标代码的完整编译器，需将运行该生成器得到的结果接入 `emit` 阶段： $\lambda s. \mathrm{emit}_S^T(\mathrm{run}_M(\text{compiler}) s)$。（注：此处忽略了 Monad 包装）。
 
 **第三映射 (生成编译器生成器 / Cogen)**
 目标：生成一个能自动将解释器转换为编译器的工具。
-$$ \text{cogen}_M = \mathfrak{M}_M^M(\text{mix}, \text{mixSrc}) $$
+$ \text{cogen}_M = 𝔐_M^M(\text{mix}, \text{mixSrc}) $
 *含义*:
 - **Function**: $\text{mix}$ (运行中的部分求值器代码)。
 - **Input**: $\text{mixSrc}$ (作为数据的部分求值器源码 AST)。

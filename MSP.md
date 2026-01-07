@@ -14,7 +14,7 @@
 *   **Type Safety (类型安全)**: 与简单的字符串拼接或宏（Macro）不同，MSP 强调在生成代码时就保证生成出的代码是类型安全的 (Well-typed)。
 
 ### Haskell 视角的类比
-如果说普通编程是编写函数 $f: A \to B$，那么 MSP 就是编写函数 $f: A \to \text{Code}\langle B \rangle$。你不是直接计算结果，而是计算“计算结果的代码”。
+如果说普通编程是编写函数 $f: A \to B$ ，那么 MSP 就是编写函数 $f: A \to \text{Code}\langle B \rangle$。你不是直接计算结果，而是计算“计算结果的代码”。
 
 ---
 

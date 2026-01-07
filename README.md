@@ -157,13 +157,14 @@ $$
 
 注：解释器通常操作在 Typed AST 或 Raw AST 上。
 
-### 6.2 编译器 (Compiler)
+### 6.2 编译器 / 分阶段解释器 (Staged Interpreter)
 
 $$
 \mathrm{Comp} : 𝒜^S \to ℰ\langle 𝒞^T\langle \mathrm{Input} \to \mathrm{Output} \rangle \rangle
 $$
 
-利用 `emit` 将源语言 AST 转换为目标语言代码。
+- **本质**: 编译器是**分阶段的解释器 (Staged Interpreter)**。
+- **机制**: 通过将标准解释器中的计算阶段分离，把“即时求值”替换为“代码生成 (`emit`)”，从而将 $S$ 的 AST 转换为 $T$ 的代码。
 
 ### 6.3 编译器生成器 (Cogen)
 
@@ -193,6 +194,11 @@ $$
 ### T-Lift
 $$
 \frac{\Gamma \vdash v : \tau^M \quad \tau \in \text{Liftable}}{\Gamma \vdash \uparrow^L v : 𝒞^L\langle \tau \rangle}
+$$
+
+### T-Mix
+$$
+\frac{\Gamma \vdash f : 𝒞^L\langle \alpha \to \beta \rangle \quad \Gamma \vdash x : \alpha^L}{\Gamma \vdash \mathfrak{M}^L(f, x) : 𝒞^L\langle \beta \rangle}
 $$
 
 ### T-Run

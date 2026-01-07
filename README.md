@@ -242,6 +242,16 @@ $$ (f \ggg g)(x) \equiv f(x) \textbf{ bind } g $$
     即管线中的 $\mathrm{eval}$ 阶段。
     $$ \text{coreInterpreter}_{M} \equiv \mathrm{eval} : 𝒜^S\langle \tau \rangle \times \text{Input} \to ℰ\langle \tau \rangle $$
 
+**类型别名 (Type Aliases)**
+
+为了简化符号，我们正式定义以下函数类型：
+
+*   **Compiler Type**:
+    $$ \text{Compiler}\langle S \to T \rangle \equiv 𝒜^S \to 𝒞^T $$
+
+*   **Interpreter Type**:
+    $$ \text{Interpreter}\langle S \rangle \equiv 𝒜^S \to \text{Input} \to ℰ\langle \text{Output} \rangle $$
+
 > **约定 (Convention)**: 为了简化符号，在后续章节 (7.2 - 7.4) 中，术语 **compiler** 和 **interpreter** 默认指代 **coreCompiler** 和 **coreInterpreter** (作为 Term)，而大写的 **Compiler** 和 **Interpreter** 指代其对应的函数类型。
 
 ### 7.2 加拿大交叉编译 (Canadian Cross Compilation)
@@ -250,7 +260,7 @@ $$ (f \ggg g)(x) \equiv f(x) \textbf{ bind } g $$
 
 我们的目标是构建一个 **crossCompiler**，它运行在 $H$ 上，为 $T$ 生成代码。
 
-$$ \text{goal} : 𝒞^H\langle \text{Compiler}_{H}^{T} \rangle $$
+$$ \text{goal} : 𝒞^H\langle \text{Compiler}\langle S \to T \rangle \rangle $$
 
 **MDTT 视角下的三元组关系矩阵**:
 
@@ -263,7 +273,7 @@ $$ \text{goal} : 𝒞^H\langle \text{Compiler}_{H}^{T} \rangle $$
 **构建过程的形式化**:
 
 1.  **toolchain**: $B$ 上的交叉编译器，能够生成 $H$ 的代码。
-    $$ \text{toolchain} : \text{Compiler}_B^H $$
+    $$ \text{toolchain} : 𝒞^B\langle \text{Compiler}\langle S \to H \rangle \rangle $$
 2.  **source**: 目标编译器的源码，逻辑上是定义了一个从“任意输入源码”到“$T$ 平台代码”的转换。
     $$ \text{source} : 𝒜^S \quad (\text{Logic: } 𝒮 \to 𝒞^T) $$
 3.  **build**: 在 $B$ 机器上，用 $\text{toolchain}$ 编译 $\text{source}$。
@@ -347,7 +357,7 @@ $$ \text{cogen}_M = \mathfrak{M}_M^M(\text{mix}, \text{mixSrc}) $$
 
 1.  **Stage 0 (Snapshot / Bootstrap Compiler)**:
     我们需要一个起点。通常是上一版本的二进制文件，已存在于 $M$ 上。
-    $$ \text{rustc}_{0} : \text{Compiler}_M^M $$
+    $$ \text{rustc}_{0} : 𝒞^M\langle \text{Compiler}\langle S \to M \rangle \rangle $$
 
 2.  **Stage 1 (Intermediate Compiler)**:
     用旧编译器 $\text{rustc}_0$ 编译新源码 `rustc_src`。

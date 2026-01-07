@@ -1,4 +1,4 @@
-# MDTT Specification v0.5
+# MDTT Specification v0.6
 
 **Heterogeneous Multi-stage Dependent Type Theory**
 
@@ -10,20 +10,18 @@ MDTT 是一个用于形式化描述元编程、编译器架构及异构计算的
 
 - **异构性 (Heterogeneity)**: 显式区分宿主语言 ( $M$ ) 与目标语言 ( $L$ )。
 - **二元性 (Duality)**: 严格分离 Code (黑盒/安全) 与 AST (白盒/可分析)。
-- **完整链路 (Full Pipeline)**: 涵盖从 文本 ( 𝒮 ) 到 AST ( 𝒜 ) 再到 Code ( 𝒞 ) 的全过程，并引入 错误上下文 ( ℰ ) 处理副作用。
+- **显式管线 (Explicit Pipeline)**: 将解析、定型、代码生成与执行严格分阶，消除中间态的类型模糊性。
 
 ## 2. 基础定义 (Foundations)
 
-- ℒ (Languages): 语言标签的集合。
-- $M \in ℒ$ : Host Language (Machine/Meta)，当前内存与执行环境的持有者。
-- $L \in ℒ$ : Target Language (Object/Source)，被表示、编译或解释的语言。
+- $ℒ$ (Languages): 语言标签的集合。
+- $M \in ℒ$: Host Language (Machine/Meta)，当前内存与执行环境的持有者。
+- $L \in ℒ$: Target Language (Object/Source)，被表示、编译或解释的语言。
 
-**𝒰 (Universes):**
+**类型约束 (Type Constraints):**
 
-- $𝒰^M$ : 宿主语言的类型全集。
-- $𝒰^L$ : 目标语言的类型全集。
-
-**Base Types:** $\mathbb{N}, \mathbb{B}, \mathbb{S}$ (Nat, Bool, String).
+- $\text{Liftable}(\tau)$: 一个类型类 (Type Class) 约束。仅当 $\tau$ 满足此约束时（即支持序列化或跨平台引用），该类型的值才能在阶段间被提升 (Lift)。
+    - Base Types ($\mathbb{N}, \mathbb{B}, \mathbb{S}$) 通常默认满足 $\text{Liftable}$。
 
 ## 3. 记法系统 (Notation System)
 
@@ -44,7 +42,6 @@ MDTT 是一个用于形式化描述元编程、编译器架构及异构计算的
 
 - **外部**: 在构造器外部， $\tau$ 默认为 $\tau^{M}$ (Host Type)。
 - **内部**: 在带有上标 $L$ 的构造器内部（即 $\langle \dots \rangle$ 中），类型上下文自动切换为 $L$ 。
-- **示例**: $𝒞^L\langle \mathbb{N} \to \mathbb{N} \rangle$ 等价于 $𝒞^L\langle \mathbb{N}^L \to^L \mathbb{N}^L \rangle$ 。
 
 ## 4. 类型构造 (Type Constructors)
 
@@ -54,30 +51,26 @@ $$
 𝒮^L
 $$
 
-- **定义**: 目标语言 $L$ 的源代码文本表示（如 String）。
-- **性质**: 线性 (Flat)、无类型 (Untyped)、宿主无关 (Host-Independent)。
+- **定义**: 目标语言 $L$ 的源代码文本表示。
+- **性质**: 线性 (Flat)、无类型 (Untyped)。
 
-### 4.2 AST Type (Structural)
-
-$$
-𝒜^L \quad \text{or} \quad 𝒜^L\langle \tau \rangle
-$$
-
-- **定义**: 宿主中的代数数据结构，表示 $L$ 的语法树。
-- **变体**:
-    - 𝒜$^L$: Raw AST。仅描述语法结构，不保证类型安全。
-    - 𝒜$^L\langle \tau \rangle$: Typed AST (GADT)。内蕴类型信息的 AST。
-- **性质**: 白盒 (White-box)、可遍历、可能包含语义错误。
-
-### 4.3 Error Context (Effectual)
+### 4.2 Raw AST (Structural)
 
 $$
-ℰ\langle \tau \rangle
+𝒜_{\text{raw}}^L
 $$
 
-- **定义**: 一个计算上下文，表示在宿主中产生类型 $\tau$ (Host Type) 的结果，或者失败。
-- **用途**: 处理解析、类型检查失败或运行时异常。
-- **等价物**: `Result<T, Error>` 或 `Either Error T`。
+- **定义**: 未经类型检查的语法树。
+- **性质**: 宿主数据结构，可能包含类型错误。
+
+### 4.3 Typed AST (Validated)
+
+$$
+𝒜^L\langle \tau \rangle
+$$
+
+- **定义**: 经过定型（Elaboration）的语法树，内蕴类型信息 $\tau$。
+- **性质**: 白盒 (White-box)，类型安全，是分析与优化的主要对象。
 
 ### 4.4 Code Type (Opaque)
 
@@ -85,64 +78,74 @@ $$
 𝒞^L\langle \tau \rangle
 $$
 
-- **定义**: 宿主中的一个值，代表目标 $L$ 中类型为 $\tau$ (Target Type) 的一段代码。
-- **性质**: 黑盒 (Black-box)、类型安全 (Well-typed)、卫生 (Hygienic)。
-- **不变量**: 若存在 $c : 𝒞^L\langle \tau \rangle$，则 $c$ 在 $L$ 中一定能求值为 $\tau$。
+- **定义**: 宿主中的一个值，代表目标 $L$ 中类型为 $\tau$ 的一段可执行代码。
+- **性质**: 黑盒 (Black-box)，不可分析，仅能组合或运行。
+
+### 4.5 Error Context (Effectual)
+
+$$
+ℰ\langle \tau \rangle
+$$
+
+- **定义**: 表示计算可能失败的上下文 (如 `Result` 或 `Either`)。
 
 ## 5. 核心算子与管线 (Operators & Pipeline)
 
 ### 5.1 解析 (Parsing)
 
 $$
-\mathrm{parse} : 𝒮^L \to ℰ\langle 𝒜^L \rangle
+\mathrm{parse} : 𝒮^L \to ℰ\langle 𝒜_{\text{raw}}^L \rangle
 $$
 
-将文本转换为 AST。可能因语法错误而失败。
+将文本转换为原始结构。
 
-### 5.2 检查/细化 (Checking / Elaboration)
-
-$$
-\mathrm{check} : 𝒜^L \to ℰ\langle 𝒞^L\langle \tau \rangle \rangle
-$$
-
-将 AST 转换为 Code。可能因类型错误而失败。  
-注: 返回类型中的 $\tau$ 是存在量化 (Existential Quantification) 的，或者是 check 函数的一个参数。
-
-### 5.3 提升 (Lifting)
+### 5.2 定型 (Elaboration)
 
 $$
-\uparrow^L : \tau^M \to 𝒞^L\langle \tau \rangle
+\mathrm{elaborate} : 𝒜_{\text{raw}}^L \to ℰ\langle \Sigma \tau. 𝒜^L\langle \tau \rangle \rangle
 $$
 
-将宿主值嵌入为目标代码字面量。  
-注: 这里 $\tau$ (Target) 对应于输入的 $\tau^M$ (Host)。
+类型推导与检查。
+- **输入**: Raw AST。
+- **输出**: 一个依赖对 (Dependent Pair)，包含推导出的类型 $\tau$ 和对应的 Typed AST。
 
-### 5.4 运行/求值 (Evaluation)
-
-$$
-⟦ \cdot ⟧^L : 𝒞^L\langle \tau \rangle \to ℰ\langle \tau^M \rangle
-$$
-
-系统原语。执行目标代码。  
-注: 结果包裹在 $ℰ$ 中，因为运行时可能发生错误。
-
-### 5.5 物化 (Reification)
+### 5.3 代码生成 (Emission)
 
 $$
-\downarrow^L : 𝒞^L\langle \tau \rangle \to 𝒜^L\langle \tau \rangle
+\mathrm{emit} : 𝒜^L\langle \tau \rangle \to 𝒞^L\langle \tau \rangle
 $$
 
-将 Code 还原为 AST 以便分析。
+将白盒的 Typed AST 下降 (Lowering) 为黑盒的 Target Code。
 
-### 5.6 特化 (Mix)
+### 5.4 提升 (Lifting)
+
+$$
+\uparrow^L : \forall \tau : \text{Liftable}. \tau^M \to 𝒞^L\langle \tau \rangle
+$$
+
+将宿主值嵌入为目标代码。
+- **约束**: 仅适用于满足 `Liftable` 的类型。
+
+### 5.5 特化 (Mix)
 
 $$
 \mathfrak{M}^L : 𝒞^L\langle \alpha \to \beta \rangle \to \alpha^L \to 𝒞^L\langle \beta \rangle
 $$
 
-部分求值。给定代码和静态参数（Host Value $\alpha^L$ ），生成残差代码。
+编译期特化 (Partial Evaluation)。
+- **语义**: 将静态值 $\alpha^L$ “烧录”进函数代码中，生成残差代码。
+- **区别**: 不同于运行时的函数调用，`Mix` 在 Code 生成阶段完成，通常不产生动态调用开销。
 
-## 6. 二村映象应用 (Futamura Projections)
+### 5.6 运行 (Run)
+
+$$
+\mathrm{run}^L : 𝒞^L\langle \tau \rangle \to ℰ\langle \tau^M \rangle
+$$
+
+异构执行。
+- **副作用**: 当 $M \neq L$ 时，此操作包含 **Marshalling** (数据编组), **Offloading** (任务卸载), **Remote Execution** (远程执行) 以及 **Result Retrieval** (结果回传) 等复杂过程。
+
+## 6. 二村映象 (Futamura Projections)
 
 设定: Source $S$ , Target $T$ , Host $M$ .
 
@@ -152,18 +155,15 @@ $$
 \mathrm{Int} : 𝒜^S \times \mathrm{Input} \to ℰ\langle \mathrm{Output} \rangle
 $$
 
-- **定义**: 用户编写的函数，递归遍历 AST 并计算结果。
-- **性质**: 可能会失败。
+注：解释器通常操作在 Typed AST 或 Raw AST 上。
 
-### 6.2 编译器 (Compiler / Staged Interpreter)
+### 6.2 编译器 (Compiler)
 
 $$
 \mathrm{Comp} : 𝒜^S \to ℰ\langle 𝒞^T\langle \mathrm{Input} \to \mathrm{Output} \rangle \rangle
 $$
 
-- **定义**: 用户编写的函数，遍历 AST 并生成目标代码。
-- **性质**: 可能会在编译期失败。
-- **第一二村映象**: $\mathrm{target\_code} = \mathfrak{M}^M(\mathrm{Int}, \mathrm{source\_ast})$
+利用 `emit` 将源语言 AST 转换为目标语言代码。
 
 ### 6.3 编译器生成器 (Cogen)
 
@@ -171,44 +171,33 @@ $$
 \mathrm{Cogen} : \mathrm{Interpreter} \to \mathrm{Compiler}
 $$
 
-- **类型展开**:
-
-$$
-(𝒜^S \times \mathrm{In} \to ℰ\langle \mathrm{Out} \rangle) \to (𝒜^S \to ℰ\langle 𝒞^T\langle \mathrm{In} \to \mathrm{Out} \rangle \rangle)
-$$
-
-- **第二二村映象**: $\mathrm{Comp} = \mathfrak{M}^M(\mathfrak{M}, \mathrm{Int})$
+类型展开严格遵循二村映象定义。
 
 ## 7. 附录：类型推导规则 (Typing Rules)
 
-### T-Lift
-
-$$
-\frac{\Gamma \vdash t : \tau^M}{\Gamma \vdash \uparrow^L t : 𝒞^L\langle \tau \rangle}
-$$
-
 ### T-Parse
-
 $$
-\frac{\Gamma \vdash s : 𝒮^L}{\Gamma \vdash \mathrm{parse}(s) : ℰ\langle 𝒜^L \rangle}
+\frac{\Gamma \vdash s : 𝒮^L}{\Gamma \vdash \mathrm{parse}(s) : ℰ\langle 𝒜_{\text{raw}}^L \rangle}
 $$
 
-### T-Check
-
+### T-Elaborate
 $$
-\frac{\Gamma \vdash a : 𝒜^L}{\Gamma \vdash \mathrm{check}(a) : ℰ\langle \exists \tau. 𝒞^L\langle \tau \rangle \rangle}
+\frac{\Gamma \vdash a : 𝒜_{\text{raw}}^L}{\Gamma \vdash \mathrm{elaborate}(a) : ℰ\langle \Sigma \tau. 𝒜^L\langle \tau \rangle \rangle}
+$$
+
+### T-Emit
+$$
+\frac{\Gamma \vdash a : 𝒜^L\langle \tau \rangle}{\Gamma \vdash \mathrm{emit}(a) : 𝒞^L\langle \tau \rangle}
+$$
+
+### T-Lift
+$$
+\frac{\Gamma \vdash v : \tau^M \quad \tau \in \text{Liftable}}{\Gamma \vdash \uparrow^L v : 𝒞^L\langle \tau \rangle}
 $$
 
 ### T-Run
-
 $$
-\frac{\Gamma \vdash c : 𝒞^L\langle \tau \rangle \quad M \succeq L}{\Gamma \vdash ⟦ c ⟧^L : ℰ\langle \tau^M \rangle}
-$$
-
-### T-Mix
-
-$$
-\frac{\Gamma \vdash f : 𝒞^L\langle \alpha \to \beta \rangle \quad \Gamma \vdash x : \alpha^L}{\Gamma \vdash \mathfrak{M}^L(f, x) : 𝒞^L\langle \beta \rangle}
+\frac{\Gamma \vdash c : 𝒞^L\langle \tau \rangle \quad M \succeq L}{\Gamma \vdash \mathrm{run}^L(c) : ℰ\langle \tau^M \rangle}
 $$
 
 <!--

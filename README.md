@@ -234,40 +234,56 @@ MDTT 推导出 $\text{Artifact}$ 的类型为 $𝒞^H$。
 $$ \mathrm{run}_B^? (\text{Artifact}) \quad \xrightarrow{\text{Type Error}} \quad \text{Expected } 𝒞^B, \text{ but got } 𝒞^H $$
 这在数学上杜绝了“在构建机误运行产出物”的错误。
 
-### 7.3 二村映象 (Futamura Projections) 与 MDTT
+### 7.3 二村映射 (Futamura Projections) 与 MDTT
 
-二村映象通过部分求值 (Partial Evaluation) 连接了解释器与编译器。
+二村映射通过部分求值 (Partial Evaluation) 连接了解释器与编译器。
 
-**Staged Interpreter (分阶段解释器)**
-传统的解释器交织了“语义分析”与“实际执行”。如果我们重构解释器，将其明确拆分为两个阶段：
-1.  **Static Stage**: 处理语法树遍历、环境查找等静态工作。
-2.  **Dynamic Stage**: 生成执行这些语义的目标代码。
+**第一映射 (生成目标代码)**
+目标：将解释器针对特定源码进行特化。
 
-这种被重构的解释器被称为 **Staged Interpreter**。它的输入依然是 AST，但输出变成了“计算结果的代码”而非结果本身。
-$$ \text{StagedInterpreter}_M^T : 𝒜^S\langle \tau \rangle \to 𝒞^T\langle \text{Input} \to \tau \rangle $$
+为此，我们引入 **特化算子 ($\mathfrak{M}$)**。
+这是元语言 $M$ 的核心原语（Primitive），负责执行“将静态数据烧录进代码”的动作。
+- 签名: $𝒞^L\langle \alpha \to \beta \rangle \to \alpha^L \to 𝒞^L\langle \beta \rangle$
 
-对比 7.1 中 **Compiler** 的定义，我们发现两者在类型上是等价的：
-$$ \text{StagedInterpreter}_M^T \equiv \text{Compiler}_M^T $$
-这揭示了物理本质：**编译器就是被特化（Staged）后的解释器。**
+现在我们直接使用 $\mathfrak{M}$ 对解释器进行特化：
+- **函数**: $\text{Interpreter}$ (视为接受源码 $𝒜$ 和输入 $D$ 的函数)
+- **输入**: $\text{Source}$ (具体的源码 AST)
+$$ \text{Code}^T = \mathfrak{M}_M^T(\text{Interpreter}, \text{Source}) $$
+*结果*: 固定了源码的解释器 $\equiv$ 目标代码。
 
-**三层映象推导**:
-我们使用特化算子 $\mathfrak{M}$ (Mix) 来自动化这一过程。在以下公式中，我们显式标注函数参数类型以确保严谨。
-(注：为支持部分求值，我们将 Interpreter 视为柯里化函数 $𝒜 \to (\text{Input} \to ℰ\langle \text{Output} \rangle)$)
+**第二映射 (生成编译器)**
+目标：生成一个独立的编译器。
 
-1.  **第一映象 (Target Code)**:
-    将解释器针对特定源码进行特化。
-    $$ \text{Code}^T = \mathfrak{M}_M^T(\text{Interpreter} : 𝒜 \to (\text{In} \to ℰ\langle \text{Out} \rangle), \text{src} : 𝒜) $$
-    *结果*: 获得等效于编译出的目标代码。
+为了实现这一点，我们需要将部分求值算法本身实现为一个目标语言中的程序，即 **特化程序 ($\text{Mix}$)**。
+- **类型**: $𝒞^L\langle 𝒜^L \to \text{StaticInput} \to 𝒜^L \rangle$
+- **说明**: 
+    - 第一个参数 ($𝒜^L$) 是待特化的源程序 AST。
+    - 第二个参数 ($\text{StaticInput}$) 是编译期已知的静态输入数据。
+    - 返回值 ($𝒜^L$) 是特化后的残差程序 AST。
 
-2.  **第二映象 (Compiler)**:
-    将特化算子针对解释器进行特化。
-    $$ \text{Compiler}_M^T = \mathfrak{M}_M^M(\text{Mix} : \text{Code} \to \text{Code}, \text{Interpreter} : 𝒜 \to (\text{In} \to ℰ\langle \text{Out} \rangle)) $$
-    *结果*: 获得一个能将任意源码转化为目标代码的编译器。
+在此阶段，我们将 **特化程序 ($\text{Mix}$)** 作为被操作的对象。
 
-3.  **第三映象 (Compiler Generator / Cogen)**:
-    将特化算子针对其自身进行特化。
-    $$ \text{Cogen}_M = \mathfrak{M}_M^M(\text{Mix} : \text{Code} \to \text{Code}, \text{Mix} : \text{Code} \to \text{Code}) $$
-    *结果*: 获得一个编译器生成器 (Compiler Generator)。
+$$ \text{Compiler}_M^T = \mathfrak{M}_M^M(\text{Mix}, \text{InterpreterSrc}) $$
+
+**深度解析：为什么 Mix 算子可以作用于 Mix 项？**
+观察 $\mathfrak{M}$ 的签名与 $\text{Mix}$ 的类型，我们可以发现它们完美的类型匹配：
+1.  **算子要求**: $\mathfrak{M}$ 需要一个函数代码 $𝒞\langle \alpha \to \beta \rangle$ 和一个参数值 $\alpha$。
+2.  **程序提供**: $\text{Mix}$ 本身就是一个代码项，其类型为 $𝒞\langle 𝒜^L \to (\text{StaticInput} \to 𝒜^L) \rangle$。
+    - 这里泛型 $\alpha$ 被实例化为 $𝒜^L$ (AST)。
+3.  **输入匹配**: 我们提供的 $\text{InterpreterSrc}$ 恰好是一个 AST 值。
+4.  **结论**: $\mathfrak{M}(\text{Mix}, \text{InterpreterSrc})$ 合法，返回值的类型为 $𝒞\langle \text{StaticInput} \to 𝒜^L \rangle$。
+    - 这个返回值的物理含义是：一个接受“静态输入”（即源代码）并输出“残差程序”（即目标代码）的函数。
+    - 这正是**编译器**的定义。
+
+**第三映射 (生成编译器生成器 / Cogen)**
+目标：生成一个能自动将解释器转换为编译器的工具。
+$$ \text{Cogen}_M = \mathfrak{M}_M^M(\text{Mix}, \text{MixSrc}) $$
+*含义*:
+- **Function**: $\text{Mix}$ (运行中的部分求值器代码)。
+- **Input**: $\text{MixSrc}$ (作为数据的部分求值器源码 AST)。
+*结果*: 返回一个新的函数。这个函数接受一个“静态输入”（这里即“解释器源码”），输出“残差程序”（即该解释器对应的编译器）。
+这是一个编译器生成器：$\text{InterpreterSrc} \to \text{Compiler}$。
+
 
 ### 7.4 编译器自举 (Compiler Bootstrapping)
 

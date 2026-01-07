@@ -18,6 +18,14 @@ MDTT 是一个用于形式化描述元编程、编译器架构及异构计算的
 - $M \in ℒ$: Host Language (Machine/Meta)，当前内存与执行环境的持有者。
 - $L \in ℒ$: Target Language (Object/Source)，被表示、编译或解释的语言。
 
+**执行环境形式化 (Formal Execution Environment):**
+MDTT 将“平台”(Platform) 视为类型系统的一个核心索引。
+- $\mathcal{P}$: 所有可能平台的集合 (如 `x86_64-linux`, `aarch64-none-elf`)。
+- **三元组 (Triplets)**: 在编译过程中涉及的三个关键平台角色，均为 $\mathcal{P}$ 的元素：
+    - **Build ($B \in \mathcal{P}$)**: 初始执行环境，即当前编译器正在运行的物理机器。
+    - **Host ($H \in \mathcal{P}$)**: 目标执行环境，即生成的工具（编译器本身）未来将要运行的平台。
+    - **Target ($T \in \mathcal{P}$)**: 产出目标环境，即生成的工具所生成的代码将要运行的平台。
+
 **类型约束 (Type Constraints):**
 
 - $\text{Liftable}(\tau)$: 一个类型类 (Type Class) 约束。仅当 $\tau$ 满足此约束时（即支持序列化或跨平台引用），该类型的值才能在阶段间被提升 (Lift)。
@@ -199,12 +207,15 @@ $$
 
 MDTT 的类型系统并非仅为了数学美感，而是为了解决实际工程中极易出错的架构问题。本节展示如何用形式化语言描述复杂的编译器架构。
 
-### 7.1 什么是编译器与解释器 (What are Compilers and Interpreters)
+### 7.1 编译器与解释器 (Compilers and Interpreters)
+
+我们可以用MDTT描述编译器与解释器的准确类型。
 
 为了正确处理管线中的错误上下文 (Error Context, $ℰ$)，我们引入 **Kleisli 组合算子** $\ggg$ (Left-to-right Kleisli Composition，即 Haskell 中的 `>>>`)，定义为：
 $$ (f \ggg g)(x) \equiv f(x) \textbf{ bind } g $$
 
-**1. 完整定义 (Full Definitions)**
+**完整定义 (Full Definitions)**
+
 通过组合核心算子，我们定义了从源码到目标的完整处理管线。
 
 *   **Full Compiler (完整编译器)**:
@@ -218,7 +229,9 @@ $$ (f \ggg g)(x) \equiv f(x) \textbf{ bind } g $$
     $$ \text{FullInterpreter}_{M} = \mathrm{parse} \ggg \mathrm{elaborate} \ggg \mathrm{eval} $$
     $$ \text{FullInterpreter}_{M} : 𝒮^S \times \text{Input} \to ℰ\langle \text{Output} \rangle $$
 
-**2. 核心定义 (Core Definitions)**
+
+**核心定义 (Core Definitions)**
+
 剥离了解析与定型阶段，聚焦于 `Typed AST` 之后的语义处理。
 
 *   **Core Compiler (编译器核心)**:
@@ -233,21 +246,40 @@ $$ (f \ggg g)(x) \equiv f(x) \textbf{ bind } g $$
 
 ### 7.2 加拿大交叉编译 (Canadian Cross Compilation)
 
-交叉编译涉及三个平台：$B$ (Build), $H$ (Host), $T$ (Target)。
+交叉编译涉及三个平台：$B$ (Build), $H$ (Host), $T$ (Target)。这种情况在 MDTT 中被称为 *Canadian Cross*，因为它涉及三个互不相同的平台 ($B \neq H \neq T$)，是最复杂的编译场景。
+
 我们的目标是构建一个 **Cross Compiler**，它运行在 $H$ 上，为 $T$ 生成代码。
 
 $$ \text{Goal} : 𝒞^H\langle \text{Compiler}_{H}^{T} \rangle $$
 
+**MDTT 视角下的三元组关系矩阵**:
+
+| 三元组成分 | MDTT 角色 | 形式化表示 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **Build** | $M$ (Host of Compiler) | $𝒞^B\langle \dots \rangle$ | 编译器当前“立足”的数学/物理环境 |
+| **Host** | $L$ (Target of Compiler) | $𝒞^H\langle \dots \rangle$ | 编译器阶段输出的“代码受体” |
+| **Target** | $\Delta$ (Duality Context) | $𝒞^T\langle \dots \rangle$ | 最终代码在逻辑上所指代的“异质环境” |
+
 **构建过程的形式化**:
-1.  **Toolchain**: $B$ 上的交叉编译器 $\text{Compiler}_{B}^{H}$。
-2.  **Source**: 目标编译器的源码 $𝒜^{\text{Compiler}}$。
-3.  **Build**:
+
+1.  **Toolchain**: $B$ 上的交叉编译器，能够生成 $H$ 的代码。
+    $$ \text{Toolchain} : \text{Compiler}_B^H $$
+2.  **Source**: 目标编译器的源码，逻辑上是定义了一个从“任意输入源码”到“$T$ 平台代码”的转换。
+    $$ \text{Source} : 𝒜^{\text{Compiler}} \quad (\text{Logic: } 𝒮 \to 𝒞^T) $$
+3.  **Build**: 在 $B$ 机器上，用 $\text{Toolchain}$ 编译 $\text{Source}$。
     $$ \text{Artifact} = \mathrm{run}_B \left( \text{Toolchain}, \text{Source} \right) $$
 
 **类型系统的防御力**:
+
 MDTT 推导出 $\text{Artifact}$ 的类型为 $𝒞^H$。
 $$ \mathrm{run}_B (\text{Artifact}) \quad \xrightarrow{\text{Type Error}} \quad \text{Expected } 𝒞^B, \text{ but got } 𝒞^H $$
-这在数学上杜绝了“在构建机误运行产出物”的错误。
+
+**上下文嵌套危机 (Context Nesting Crisis)**:
+
+在加拿大交叉编译中，极易出现 **环境泄露 (Environment Leakage)**。例如，源码中的宏展开阶段 (Macro Expansion) 可能错误地捕获了 Build 机器的路径或时间戳。
+- **错误**: 在 $B$ 上求值宏，嵌入了 $B$ 的字符串。
+- **MDTT 约束**: 类型系统强制区分 $\text{Stage}_B$ 和 $\text{Stage}_H$ 的数据。若要在 $H$ 的代码中嵌入静态数据，必须通过显式的 `lift` 操作，且该操作必须发生在正确的阶段。
+- **结果**: 如果 $B$ 的环境信息试图流入 $𝒞^H$ 而未经过合法的 Cross-Stage Persistence 处理，类型检查器将报错，从而保证了构建的可复现性 (Reproducibility)。
 
 ### 7.3 二村映射 (Futamura Projections) 与 MDTT
 
@@ -287,8 +319,9 @@ $$ \text{Compiler}_M^T = \mathfrak{M}_M^M(\text{Mix}, \text{InterpreterSrc}) $$
     - 这里泛型 $\alpha$ 被实例化为 $𝒜^L$ (AST)。
 3.  **输入匹配**: 我们提供的 $\text{InterpreterSrc}$ 恰好是一个 AST 值。
 4.  **结论**: $\mathfrak{M}(\text{Mix}, \text{InterpreterSrc})$ 合法，返回值的类型为 $𝒞\langle \text{StaticInput} \to 𝒜^L \rangle$。
-    - 这个返回值的物理含义是：一个接受“静态输入”（即源代码）并输出“残差程序”（即目标代码）的函数。
-    - 这正是**编译器**的定义。
+    - 这个返回值的物理含义是：一个接受“静态输入”（即源代码）并输出“残差程序 AST”的函数。
+    - 这在 MDTT 架构中对应于**编译器的前端与优化器** (从源码到特化 AST)。
+    - 若要得到产出二进制目标代码的完整编译器，需将运行该生成器得到的结果接入 `emit` 阶段：$\lambda s. \mathrm{emit}(\mathrm{run}(\text{Compiler}) s)$。
 
 **第三映射 (生成编译器生成器 / Cogen)**
 目标：生成一个能自动将解释器转换为编译器的工具。
@@ -333,5 +366,5 @@ $$ \text{rustc}_{2} \equiv \text{rustc}_{3} \quad (\text{Bitwise Equivalence}) $
 MDTT 的类型系统在此过程中保证了每一阶段输入输出的类型一致性 ($\text{Compiler}_M^M$)，确保了自举链条没有发生阶段错配（例如错误地使用了 Stage 0 的库来链接 Stage 2 的二进制）。
 
 <!--
-Copyright © 2025 罗宸 (luochen1990@gmail.com, chen@luo.xyz, https://blog.coding.lc)
+Copyright © 2026 罗宸 (luochen1990@gmail.com, chen@luo.xyz, https://blog.coding.lc)
 -->

@@ -101,28 +101,34 @@ $$
 ### 5.1 解析 (Parsing)
 
 $$
-\mathrm{parse} : 𝒮^L \to ℰ\langle 𝒜^L \rangle
+\mathrm{parse}^L : 𝒮^L \to ℰ\langle 𝒜^L \rangle
 $$
 
 将文本转换为原始结构。
+- **参数**: 上标 $L$ 标示被解析的目标语言。
 
 ### 5.2 定型 (Elaboration)
 
 $$
-\mathrm{elaborate} : 𝒜^L \to ℰ\langle \Sigma \tau. 𝒜^L\langle \tau \rangle \rangle
+\mathrm{elaborate}^L : 𝒜^L \to ℰ\langle \Sigma \tau. 𝒜^L\langle \tau \rangle \rangle
 $$
 
 类型推导与检查。
+- **参数**: 上标 $L$ 标示被分析的目标语言。
 - **输入**: Raw AST。
 - **输出**: 一个依赖对 (Dependent Pair)，包含推导出的类型 $\tau$ 和对应的 Typed AST。
 
 ### 5.3 代码生成 (Emission)
 
 $$
-\mathrm{emit} : 𝒜^L\langle \tau \rangle \to 𝒞^L\langle \tau \rangle
+\mathrm{emit}_S^T : 𝒜^S\langle \tau \rangle \to 𝒞^T\langle \tau \rangle
 $$
 
 将白盒的 Typed AST 下降 (Lowering) 为黑盒的 Target Code。
+- **参数**:
+    - 下标 $S$ (Source): 源语言（AST 表示的语言）。
+    - 上标 $T$ (Target): 目标语言（生成代码的语言）。
+- **注意**: 当 $S \neq T$ 时，此算子包含编译/翻译逻辑；当 $S = T$ 时，仅为序列化。
 
 ### 5.4 提升 (Lifting)
 
@@ -168,17 +174,17 @@ $$
 
 ### T-Parse
 $$
-\frac{\Gamma \vdash s : 𝒮^L}{\Gamma \vdash \mathrm{parse}(s) : ℰ\langle 𝒜^L \rangle}
+\frac{\Gamma \vdash s : 𝒮^L}{\Gamma \vdash \mathrm{parse}^L(s) : ℰ\langle 𝒜^L \rangle}
 $$
 
 ### T-Elaborate
 $$
-\frac{\Gamma \vdash a : 𝒜^L}{\Gamma \vdash \mathrm{elaborate}(a) : ℰ\langle \Sigma \tau. 𝒜^L\langle \tau \rangle \rangle}
+\frac{\Gamma \vdash a : 𝒜^L}{\Gamma \vdash \mathrm{elaborate}^L(a) : ℰ\langle \Sigma \tau. 𝒜^L\langle \tau \rangle \rangle}
 $$
 
 ### T-Emit
 $$
-\frac{\Gamma \vdash a : 𝒜^L\langle \tau \rangle}{\Gamma \vdash \mathrm{emit}(a) : 𝒞^L\langle \tau \rangle}
+\frac{\Gamma \vdash a : 𝒜^S\langle \tau \rangle}{\Gamma \vdash \mathrm{emit}_S^T(a) : 𝒞^T\langle \tau \rangle}
 $$
 
 ### T-Lift
@@ -218,13 +224,13 @@ $$ (f \ggg g)(x) \equiv f(x) \textbf{ bind } g $$
 
 *   **fullCompiler (完整编译器)**:
     将源代码转化为目标代码。管线：`parse` $\to$ `elaborate` $\to$ `emit`。
-    $$ \text{fullCompiler}_{M}^{T} = \mathrm{parse} \ggg \mathrm{elaborate} \ggg (\mathrm{pure} \circ \mathrm{emit}) $$
+    $$ \text{fullCompiler}_{M}^{T} = \mathrm{parse}^S \ggg \mathrm{elaborate}^S \ggg (\mathrm{pure} \circ \mathrm{emit}_S^T) $$
     $$ \text{fullCompiler}_{M}^{T} : 𝒮^S \to ℰ\langle 𝒞^T \rangle $$
 
 *   **fullInterpreter (完整解释器)**:
-    直接执行源代码语义。MDTT 引入基础算子 $\mathrm{eval} : 𝒜^S\langle \tau \rangle \times \text{Input} \to ℰ\langle \tau \rangle$ 来表示 AST 的求值。
+    直接执行源代码语义。MDTT 引入基础算子 $\mathrm{eval}_M^S : 𝒜^S\langle \tau \rangle \times \text{Input} \to ℰ\langle \tau \rangle$ 来表示 AST 的求值。
     管线：`parse` $\to$ `elaborate` $\to$ `eval`。
-    $$ \text{fullInterpreter}_{M} = \mathrm{parse} \ggg \mathrm{elaborate} \ggg \mathrm{eval} $$
+    $$ \text{fullInterpreter}_{M} = \mathrm{parse}^S \ggg \mathrm{elaborate}^S \ggg \mathrm{eval}_M^S $$
     $$ \text{fullInterpreter}_{M} : 𝒮^S \times \text{Input} \to ℰ\langle \text{Output} \rangle $$
 
 
@@ -234,11 +240,11 @@ $$ (f \ggg g)(x) \equiv f(x) \textbf{ bind } g $$
 
 *   **coreCompiler (编译器核心)**:
     即管线中的 $\mathrm{emit}$ 阶段。
-    $$ \text{coreCompiler}_{M}^{T} \equiv \mathrm{emit} : 𝒜^S\langle \tau \rangle \to 𝒞^T\langle \tau \rangle $$
+    $$ \text{coreCompiler}_{M}^{T} \equiv \mathrm{emit}_S^T : 𝒜^S\langle \tau \rangle \to 𝒞^T\langle \tau \rangle $$
 
 *   **coreInterpreter (解释器核心)**:
     即管线中的 $\mathrm{eval}$ 阶段。
-    $$ \text{coreInterpreter}_{M} \equiv \mathrm{eval} : 𝒜^S\langle \tau \rangle \times \text{Input} \to ℰ\langle \tau \rangle $$
+    $$ \text{coreInterpreter}_{M} \equiv \mathrm{eval}_M^S : 𝒜^S\langle \tau \rangle \times \text{Input} \to ℰ\langle \tau \rangle $$
 
 **类型别名 (Type Aliases)**
 
@@ -293,12 +299,14 @@ $$ \text{goal} : 𝒞^H\langle \text{Compiler}\langle S, T \rangle \rangle $$
 2.  **Builder**: 一个运行在 $B$ 上的编译器（交叉编译器），它能把语言 $L$ 编译成 $H$ 平台的代码。
     $$ \text{builder} : 𝒞^B\langle \text{Compiler}\langle L, H \rangle \rangle $$
 3.  **Process**: 在 $B$ 上执行构建。
-    $$ \text{artifact} = \mathrm{run}_B \left( \text{builder}, \text{source} \right) $$
+    $$ \text{artifact} = \mathrm{run}_B ( \text{builder} ) \text{ source} $$
+    *(注：此处忽略了 monadic bind 细节，意为运行 builder 得到函数后应用于 source)*
 
 **类型检查 (Type Check)**:
 MDTT 的类型系统能够自动推导 `run` 操作的结果类型：
-$$ \mathrm{run}_B : \underbrace{𝒞^B\langle L \to H \rangle}_{\text{运行在B, 生成H}} \times \underbrace{𝒜^L}_{\text{源码}} \to \underbrace{𝒞^H}_{\text{产物在H}} $$
-$$ \therefore \text{artifact} : 𝒞^H $$
+$$ \mathrm{run}_B(\text{builder}) : ℰ\langle \underbrace{\text{Compiler}\langle L, H \rangle}_{\text{Builder 逻辑: } L \to H} \rangle $$
+即 $ℰ\langle 𝒜^L \to 𝒞^H \rangle$。将其应用到 `source` ($𝒜^L$, 且其逻辑语义为 $S \to T$) 后：
+$$ \therefore \text{artifact} : 𝒞^H\langle \text{Compiler}\langle S, T \rangle \rangle $$
 
 这就清晰地解释了为什么我们在 $B$ 上操作，却得到了 $H$ 的类型——因为 `builder` 的**目标属性** ($H$) 决定了产物的**宿主属性** ($H$)。这就是所谓的 "Shift" (转换)。
 
@@ -350,7 +358,7 @@ $$ \text{compiler}_M^T = \mathfrak{M}_M^M(\text{mix}, \text{interpreterSrc}) $$
 4.  **结论**: $\mathfrak{M}(\text{mix}, \text{interpreterSrc})$ 合法，返回值的类型为 $𝒞\langle \text{StaticInput} \to 𝒜^L \rangle$。
     - 这个返回值的物理含义是：一个接受“静态输入”（即源代码）并输出“残差程序 AST”的函数。
     - 这在 MDTT 架构中对应于**编译器的前端与优化器** (从源码到特化 AST)。
-    - 若要得到产出二进制目标代码的完整编译器，需将运行该生成器得到的结果接入 `emit` 阶段：$\lambda s. \mathrm{emit}(\mathrm{run}(\text{compiler}) s)$。
+    - 若要得到产出二进制目标代码的完整编译器，需将运行该生成器得到的结果接入 `emit` 阶段：$\lambda s. \mathrm{emit}_S^T(\mathrm{run}_M(\text{compiler}) s)$。（注：此处忽略了 Monad 包装）。
 
 **第三映射 (生成编译器生成器 / Cogen)**
 目标：生成一个能自动将解释器转换为编译器的工具。

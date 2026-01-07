@@ -32,7 +32,7 @@ MDTT 是一个用于形式化描述元编程、编译器架构及异构计算的
 **Host 下标 (Subscript):**
 
 - **类型构造**: 默认省略。在单机/单宿主环境下，默认指代当前宿主 $M$ 。
-- **跨层算子**: **必须显式书写**。对于 `run` (执行) 和 `lift` (提升) 等跨越 $M/L$ 边界的操作，必须标注下标以明确**操作的发起者** (Driver)。
+- **跨层算子**: **必须显式书写**。对于 `lift` (提升) 等跨越 $M/L$ 边界的操作，必须标注下标以明确**操作的发起者** (Driver)。`run` (执行) 操作默认针对当前宿主 $M$。
 
 **Target 上标 (Superscript):**
 
@@ -141,12 +141,22 @@ $$
 ### 5.6 运行 (Run)
 
 $$
-\mathrm{run}_M^L : 𝒞^L\langle \tau \rangle \to ℰ\langle \tau^M \rangle
+\mathrm{run}_M : 𝒞^M\langle \tau \rangle \to ℰ\langle \tau \rangle
 $$
 
-异构执行。
-- **语义**: Host $M$ 发起对 Target $L$ 代码的执行请求，并等待结果返回 $M$。
-- **副作用**: 当 $M \neq L$ 时，此操作包含 **Marshalling** (数据编组), **Offloading** (任务卸载), **Remote Execution** (远程执行) 以及 **Result Retrieval** (结果回传) 等复杂过程。
+同构执行。
+- **语义**: Host $M$ 加载并执行针对自身的代码 $𝒞^M$。
+- **约束**: 仅当代码的目标平台与当前宿主一致时 ($L=M$) 才能运行。异构执行 (如 CPU 调度 GPU) 需通过特定 FFI 函数包装为 $𝒞^M$ 后方可调用。
+
+### 5.7 求值 (Eval)
+
+$$
+\mathrm{eval}_M^L : 𝒜^L\langle \tau \rangle \to ℰ\langle \tau^M \rangle
+$$
+
+解释求值。
+- **语义**: Host $M$ 通过解释器逻辑直接计算 Target AST $𝒜^L$ 的值。
+- **区别**: 与 `run` 不同，`eval` 是软件定义的语义映射，不依赖底层硬件。因此它天然支持异构 (即在 $M$ 上解释 $L$ 的代码)，常用于实现解释器或编译期的常量折叠。
 
 ## 6. 类型推导规则 (Typing Rules)
 
@@ -177,7 +187,12 @@ $$
 
 ### T-Run
 $$
-\frac{\Gamma \vdash c : 𝒞^L\langle \tau \rangle \quad M \succeq L}{\Gamma \vdash \mathrm{run}_M^L(c) : ℰ\langle \tau^M \rangle}
+\frac{\Gamma \vdash c : 𝒞^M\langle \tau \rangle}{\Gamma \vdash \mathrm{run}_M(c) : ℰ\langle \tau \rangle}
+$$
+
+### T-Eval
+$$
+\frac{\Gamma \vdash a : 𝒜^L\langle \tau \rangle}{\Gamma \vdash \mathrm{eval}_M^L(a) : ℰ\langle \tau^M \rangle}
 $$
 
 ## 7. 应用举例 (Application Examples)
@@ -227,11 +242,11 @@ $$ \text{Goal} : 𝒞^H\langle \text{Compiler}_{H}^{T} \rangle $$
 1.  **Toolchain**: $B$ 上的交叉编译器 $\text{Compiler}_{B}^{H}$。
 2.  **Source**: 目标编译器的源码 $𝒜^{\text{Compiler}}$。
 3.  **Build**:
-    $$ \text{Artifact} = \mathrm{run}_B^B \left( \text{Toolchain}, \text{Source} \right) $$
+    $$ \text{Artifact} = \mathrm{run}_B \left( \text{Toolchain}, \text{Source} \right) $$
 
 **类型系统的防御力**:
 MDTT 推导出 $\text{Artifact}$ 的类型为 $𝒞^H$。
-$$ \mathrm{run}_B^? (\text{Artifact}) \quad \xrightarrow{\text{Type Error}} \quad \text{Expected } 𝒞^B, \text{ but got } 𝒞^H $$
+$$ \mathrm{run}_B (\text{Artifact}) \quad \xrightarrow{\text{Type Error}} \quad \text{Expected } 𝒞^B, \text{ but got } 𝒞^H $$
 这在数学上杜绝了“在构建机误运行产出物”的错误。
 
 ### 7.3 二村映射 (Futamura Projections) 与 MDTT
@@ -302,17 +317,17 @@ $$ \text{Cogen}_M = \mathfrak{M}_M^M(\text{Mix}, \text{MixSrc}) $$
 
 2.  **Stage 1 (Intermediate Compiler)**:
     用旧编译器 $\text{rustc}_0$ 编译新源码 `rustc_src`。
-    $$ \text{rustc}_{1} = \mathrm{run}_M^M( \text{rustc}_{0}, \text{rustc\_src} ) $$
+    $$ \text{rustc}_{1} = \mathrm{run}_M( \text{rustc}_{0}, \text{rustc\_src} ) $$
     *状态分析*: $\text{rustc}_{1}$ 是一个运行在 $M$ 上的新编译器。它实现了新语言特性 (源自 `rustc_src`)，但它的机器码是由旧编译器生成的 (可能未优化)。
 
 3.  **Stage 2 (Final Compiler)**:
     用新编译器 $\text{rustc}_1$ 再次编译新源码 `rustc_src`。
-    $$ \text{rustc}_{2} = \mathrm{run}_M^M( \text{rustc}_{1}, \text{rustc\_src} ) $$
+    $$ \text{rustc}_{2} = \mathrm{run}_M( \text{rustc}_{1}, \text{rustc\_src} ) $$
     *状态分析*: $\text{rustc}_{2}$ 实现了新特性，且是由支持新特性的编译器生成的。它是一个完全自我托管 (Self-hosted) 的产物。
 
 **MDTT 视角下的不动点**:
 理论上，如果我们继续生成 Stage 3：
-$$ \text{rustc}_{3} = \mathrm{run}_M^M( \text{rustc}_{2}, \text{rustc\_src} ) $$
+$$ \text{rustc}_{3} = \mathrm{run}_M( \text{rustc}_{2}, \text{rustc\_src} ) $$
 在确定性编译的前提下，必须满足：
 $$ \text{rustc}_{2} \equiv \text{rustc}_{3} \quad (\text{Bitwise Equivalence}) $$
 MDTT 的类型系统在此过程中保证了每一阶段输入输出的类型一致性 ($\text{Compiler}_M^M$)，确保了自举链条没有发生阶段错配（例如错误地使用了 Stage 0 的库来链接 Stage 2 的二进制）。

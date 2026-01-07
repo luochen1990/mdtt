@@ -131,11 +131,11 @@ $$
 ### 5.5 特化 (Mix)
 
 $$
-\mathfrak{M}_M^L : 𝒞^L\langle \alpha \to \beta \rangle \to \alpha^L \to 𝒞^L\langle \beta \rangle
+\mathfrak{M}_M^L : 𝒞^L\langle \alpha \to \beta \rangle \to 𝒜^L\langle \alpha \rangle \to 𝒞^L\langle \beta \rangle
 $$
 
 编译期特化 (Partial Evaluation)。
-- **语义**: 将静态值 $\alpha^L$ “烧录”进函数代码中，生成残差代码。
+- **语义**: 将静态值 $\alpha$ (在宿主中以 AST $𝒜^L\langle \alpha \rangle$ 的形式存在) “烧录”进函数代码中，生成残差代码。
 - **区别**: 不同于运行时的函数调用，`Mix` 在 Code 生成阶段完成，通常不产生动态调用开销。
 
 ### 5.6 运行 (Run)
@@ -172,7 +172,7 @@ $$
 
 ### T-Mix
 $$
-\frac{\Gamma \vdash f : 𝒞^L\langle \alpha \to \beta \rangle \quad \Gamma \vdash x : \alpha^L}{\Gamma \vdash \mathfrak{M}_M^L(f, x) : 𝒞^L\langle \beta \rangle}
+\frac{\Gamma \vdash f : 𝒞^L\langle \alpha \to \beta \rangle \quad \Gamma \vdash x : 𝒜^L\langle \alpha \rangle}{\Gamma \vdash \mathfrak{M}_M^L(f, x) : 𝒞^L\langle \beta \rangle}
 $$
 
 ### T-Run

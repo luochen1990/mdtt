@@ -3,10 +3,13 @@
 ## Architecture Overview
 MDTT is a formal framework for metaprogramming and compiler architectures. It explicitly distinguishes between host ($M$) and target ($L$) languages and models the pipeline from source text through AST to executable code.
 
-### Core Concepts
+### Primary Use Cases
+- **Multi-stage Modeling**: Formalizing the staging of computation and code specialization.
+- **Architecture Verification**: Using Dependent Types (DT) to capture implementation details and ensure mathematical correctness of compiler construction.
+
+### Core Features
 - **Heterogeneity**: Separation of execution environments.
 - **Duality**: Separation of analyzable AST and safe, opaque Code.
-- **Formal Semantics**: Using Dependent Types (DT) to capture implementation details (environment dependencies, staging constraints, effects), turning compiler architecture problems into type checking problems.
 
 ## File Structure
 - `README.md`: Main specification and theoretical foundation.

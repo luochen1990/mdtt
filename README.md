@@ -1,4 +1,4 @@
-# MDTT Specification v0.6
+# MDTT Specification v0.7
 
 **Heterogeneous Multi-stage Dependent Type Theory**
 
@@ -148,36 +148,7 @@ $$
 - **语义**: Host $M$ 发起对 Target $L$ 代码的执行请求，并等待结果返回 $M$。
 - **副作用**: 当 $M \neq L$ 时，此操作包含 **Marshalling** (数据编组), **Offloading** (任务卸载), **Remote Execution** (远程执行) 以及 **Result Retrieval** (结果回传) 等复杂过程。
 
-## 6. 二村映象 (Futamura Projections)
-
-设定: Source $S$ , Target $T$ , Host $M$ .
-
-### 6.1 解释器 (Standard Interpreter)
-
-$$
-\mathrm{Int} : 𝒜^S \times \mathrm{Input} \to ℰ\langle \mathrm{Output} \rangle
-$$
-
-注：解释器通常操作在 Typed AST 或 Raw AST 上。
-
-### 6.2 编译器 / 分阶段解释器 (Staged Interpreter)
-
-$$
-\mathrm{Comp} : 𝒜^S \to ℰ\langle 𝒞^T\langle \mathrm{Input} \to \mathrm{Output} \rangle \rangle
-$$
-
-- **本质**: 编译器是**分阶段的解释器 (Staged Interpreter)**。
-- **机制**: 通过将标准解释器中的计算阶段分离，把“即时求值”替换为“代码生成 (`emit`)”，从而将 $S$ 的 AST 转换为 $T$ 的代码。
-
-### 6.3 编译器生成器 (Cogen)
-
-$$
-\mathrm{Cogen} : \mathrm{Interpreter} \to \mathrm{Compiler}
-$$
-
-类型展开严格遵循二村映象定义。
-
-## 7. 附录：类型推导规则 (Typing Rules)
+## 6. 类型推导规则 (Typing Rules)
 
 ### T-Parse
 $$
@@ -208,6 +179,67 @@ $$
 $$
 \frac{\Gamma \vdash c : 𝒞^L\langle \tau \rangle \quad M \succeq L}{\Gamma \vdash \mathrm{run}_M^L(c) : ℰ\langle \tau^M \rangle}
 $$
+
+## 7. 应用举例 (Application Examples)
+
+### 7.1 加拿大交叉编译 (Canadian Cross Compilation)
+
+交叉编译的“三元组” (Build, Host, Target) 通常是让开发者困惑的概念，但在 MDTT 的形式化视角下，这三个维度实际上是对**执行环境** (Execution Environment) 的类型参数化。
+
+令 $\mathcal{P}$ 为所有可能平台的集合 (如 `x86_64-linux`, `aarch64-none-elf`)。我们定义三个关键角色：
+
+1.  **Build ($B \in \mathcal{P}$)**: 当前编译动作的发起者，即当前正在运行编译命令的机器环境 ($M$)。
+2.  **Host ($H \in \mathcal{P}$)**: 编译产出的工具（编译器本身）未来将要运行的平台环境。
+3.  **Target ($T \in \mathcal{P}$)**: 最终产出的编译器所生成的代码，在未来运行时的逻辑目标环境。
+
+在 MDTT 中，一个“运行在 $H$ 上，面向 $T$ 平台生成代码的编译器”被定义为如下的函数类型：
+$$
+\text{Comp}_H^T \triangleq 𝒜 \to 𝒞^H\langle \text{Executable}^T \rangle
+$$
+这里 $\text{Executable}^T$ 是一个不透明的二进制对象，它只能在 $T$ 上被 `run`。
+
+**加拿大交叉编译 (Canadian Cross)** 指的是 $B \neq H \neq T$ 的最复杂情形。
+例如：我们在 `x86_64` ($B$) 上，构建一个运行在 `arm64` ($H$) 上的编译器，而这个编译器将用来生成 `risc-v` ($T$) 的代码。
+
+在 MDTT 中，这体现为一个多阶段的元计算过程：
+$$
+\text{BuildProcess} : \text{Comp}_B^H \times 𝒮^{\text{Comp}_H^T} \to 𝒞^H\langle \text{Comp}_H^T \rangle
+$$
+
+这意味着：
+1.  我们利用 Build 平台 ($B$) 上现有的能力 ($\text{Comp}_B^H$)，即一个运行在 $B$ 上但能生成 $H$ 代码的交叉编译器。
+2.  输入是“目标编译器 ($\text{Comp}_H^T$) 的源代码” ($𝒮$)。
+3.  输出是一个“在 $H$ 上运行的可执行文件” ($𝒞^H$)，而这个文件的功能是充当 $\text{Comp}_H^T$。
+
+**MDTT 的价值**: 这种形式化彻底消除了“上下文嵌套”带来的混淆。在编写构建脚本时，对于任何一个库依赖或头文件引用，类型系统强制我们明确它是属于 $B$ (构建工具需要)、$H$ (编译器运行时链接需要) 还是 $T$ (最终用户程序链接需要)。
+
+### 7.2 二村映象与编译器自举 (Futamura Projections & Bootstrapping)
+
+二村映象 (Futamura Projections) 揭示了部分求值 (Partial Evaluation) 如何连接解释器与编译器。MDTT 通过显式的阶段类型系统，使得这种连接更加严谨和可验证。
+
+我们将解释器 $\mathrm{Int}$ 和编译器 $\mathrm{Comp}$ 视为同构的两种表现形式：
+
+-   **解释器**: $\mathrm{Int} : 𝒜^S \times \mathrm{Input} \to ℰ\langle \mathrm{Output} \rangle$
+    (直接在宿主 $M$ 上通过模拟执行计算结果)
+-   **编译器**: $\mathrm{Comp} : 𝒜^S \to ℰ\langle 𝒞^T\langle \mathrm{Input} \to \mathrm{Output} \rangle \rangle$
+    (将源程序的语义“烧录”到目标平台 $T$ 的代码中)
+
+**第一二村映象 (1st Projection)** 指出：将解释器针对源代码进行特化 (Mix)，即可得到编译后的代码。
+$$
+\mathfrak{M}_M^T(\mathrm{Int}, \text{source}) \implies \text{TargetCode}
+$$
+
+**编译器自举 (Bootstrapping)** 是验证编译器完备性的终极测试。即：用语言 $L$ 编写的编译器 $\text{Comp}^L$ 来编译它自己的源代码。
+
+在 MDTT 中，自举过程被形式化为：
+$$
+\mathrm{run}_M^M ( \text{Comp}_{M}^{M} \times 𝒮^{\text{Comp}} ) \to 𝒞^M\langle \text{Comp} \rangle
+$$
+
+这里的关键在于**阶段一致性 (Stage Consistency)**：
+在自举过程中，编译器既是处理者 (Operator) 又是被处理的数据 (Operand)。MDTT 的类型系统 ($X^M$ vs $X^L$) 能够防止常见的自举错误——例如，编译器在编译自己时，错误地把“编译期使用的哈希表结构”直接硬编码到了“运行时使用的哈希表结构”中，或者错误地依赖了宿主环境 ($M$) 特有的库函数。
+
+如果一个自举过程通过了 MDTT 的类型检查，我们就能在数学上保证：新生成的编译器与其宿主环境完全解耦，是一个独立的、自我包含的工件 (Self-contained Artifact)。
 
 <!--
 Copyright © 2025 罗宸 (luochen1990@gmail.com, chen@luo.xyz, https://blog.coding.lc)

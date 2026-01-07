@@ -218,39 +218,39 @@ $$ (f \ggg g)(x) \equiv f(x) \textbf{ bind } g $$
 
 通过组合核心算子，我们定义了从源码到目标的完整处理管线。
 
-*   **Full Compiler (完整编译器)**:
+*   **fullCompiler (完整编译器)**:
     将源代码转化为目标代码。管线：`parse` $\to$ `elaborate` $\to$ `emit`。
-    $$ \text{FullCompiler}_{M}^{T} = \mathrm{parse} \ggg \mathrm{elaborate} \ggg (\mathrm{pure} \circ \mathrm{emit}) $$
-    $$ \text{FullCompiler}_{M}^{T} : 𝒮^S \to ℰ\langle 𝒞^T \rangle $$
+    $$ \text{fullCompiler}_{M}^{T} = \mathrm{parse} \ggg \mathrm{elaborate} \ggg (\mathrm{pure} \circ \mathrm{emit}) $$
+    $$ \text{fullCompiler}_{M}^{T} : 𝒮^S \to ℰ\langle 𝒞^T \rangle $$
 
-*   **Full Interpreter (完整解释器)**:
+*   **fullInterpreter (完整解释器)**:
     直接执行源代码语义。MDTT 引入基础算子 $\mathrm{eval} : 𝒜^S\langle \tau \rangle \times \text{Input} \to ℰ\langle \tau \rangle$ 来表示 AST 的求值。
     管线：`parse` $\to$ `elaborate` $\to$ `eval`。
-    $$ \text{FullInterpreter}_{M} = \mathrm{parse} \ggg \mathrm{elaborate} \ggg \mathrm{eval} $$
-    $$ \text{FullInterpreter}_{M} : 𝒮^S \times \text{Input} \to ℰ\langle \text{Output} \rangle $$
+    $$ \text{fullInterpreter}_{M} = \mathrm{parse} \ggg \mathrm{elaborate} \ggg \mathrm{eval} $$
+    $$ \text{fullInterpreter}_{M} : 𝒮^S \times \text{Input} \to ℰ\langle \text{Output} \rangle $$
 
 
 **核心定义 (Core Definitions)**
 
 剥离了解析与定型阶段，聚焦于 `Typed AST` 之后的语义处理。
 
-*   **Core Compiler (编译器核心)**:
+*   **coreCompiler (编译器核心)**:
     即管线中的 $\mathrm{emit}$ 阶段。
-    $$ \text{CoreCompiler}_{M}^{T} \equiv \mathrm{emit} : 𝒜^S\langle \tau \rangle \to 𝒞^T\langle \tau \rangle $$
+    $$ \text{coreCompiler}_{M}^{T} \equiv \mathrm{emit} : 𝒜^S\langle \tau \rangle \to 𝒞^T\langle \tau \rangle $$
 
-*   **Core Interpreter (解释器核心)**:
+*   **coreInterpreter (解释器核心)**:
     即管线中的 $\mathrm{eval}$ 阶段。
-    $$ \text{CoreInterpreter}_{M} \equiv \mathrm{eval} : 𝒜^S\langle \tau \rangle \times \text{Input} \to ℰ\langle \tau \rangle $$
+    $$ \text{coreInterpreter}_{M} \equiv \mathrm{eval} : 𝒜^S\langle \tau \rangle \times \text{Input} \to ℰ\langle \tau \rangle $$
 
-> **约定 (Convention)**: 为了简化符号，在后续章节 (7.2 - 7.4) 中，术语 **Compiler** 和 **Interpreter** 默认指代 **Core Compiler** 和 **Core Interpreter**。
+> **约定 (Convention)**: 为了简化符号，在后续章节 (7.2 - 7.4) 中，术语 **compiler** 和 **interpreter** 默认指代 **coreCompiler** 和 **coreInterpreter** (作为 Term)，而大写的 **Compiler** 和 **Interpreter** 指代其对应的函数类型。
 
 ### 7.2 加拿大交叉编译 (Canadian Cross Compilation)
 
 交叉编译涉及三个平台：$B$ (Build), $H$ (Host), $T$ (Target)。这种情况在 MDTT 中被称为 *Canadian Cross*，因为它涉及三个互不相同的平台 ($B \neq H \neq T$)，是最复杂的编译场景。
 
-我们的目标是构建一个 **Cross Compiler**，它运行在 $H$ 上，为 $T$ 生成代码。
+我们的目标是构建一个 **crossCompiler**，它运行在 $H$ 上，为 $T$ 生成代码。
 
-$$ \text{Goal} : 𝒞^H\langle \text{Compiler}_{H}^{T} \rangle $$
+$$ \text{goal} : 𝒞^H\langle \text{Compiler}_{H}^{T} \rangle $$
 
 **MDTT 视角下的三元组关系矩阵**:
 
@@ -262,17 +262,17 @@ $$ \text{Goal} : 𝒞^H\langle \text{Compiler}_{H}^{T} \rangle $$
 
 **构建过程的形式化**:
 
-1.  **Toolchain**: $B$ 上的交叉编译器，能够生成 $H$ 的代码。
-    $$ \text{Toolchain} : \text{Compiler}_B^H $$
-2.  **Source**: 目标编译器的源码，逻辑上是定义了一个从“任意输入源码”到“$T$ 平台代码”的转换。
-    $$ \text{Source} : 𝒜^S \quad (\text{Logic: } 𝒮 \to 𝒞^T) $$
-3.  **Build**: 在 $B$ 机器上，用 $\text{Toolchain}$ 编译 $\text{Source}$。
-    $$ \text{Artifact} = \mathrm{run}_B \left( \text{Toolchain}, \text{Source} \right) $$
+1.  **toolchain**: $B$ 上的交叉编译器，能够生成 $H$ 的代码。
+    $$ \text{toolchain} : \text{Compiler}_B^H $$
+2.  **source**: 目标编译器的源码，逻辑上是定义了一个从“任意输入源码”到“$T$ 平台代码”的转换。
+    $$ \text{source} : 𝒜^S \quad (\text{Logic: } 𝒮 \to 𝒞^T) $$
+3.  **build**: 在 $B$ 机器上，用 $\text{toolchain}$ 编译 $\text{source}$。
+    $$ \text{artifact} = \mathrm{run}_B \left( \text{toolchain}, \text{source} \right) $$
 
 **类型系统的防御力**:
 
-MDTT 推导出 $\text{Artifact}$ 的类型为 $𝒞^H$。
-$$ \mathrm{run}_B (\text{Artifact}) \quad \xrightarrow{\text{Type Error}} \quad \text{Expected } 𝒞^B, \text{ but got } 𝒞^H $$
+MDTT 推导出 $\text{artifact}$ 的类型为 $𝒞^H$。
+$$ \mathrm{run}_B (\text{artifact}) \quad \xrightarrow{\text{Type Error}} \quad \text{Expected } 𝒞^B, \text{ but got } 𝒞^H $$
 
 **上下文嵌套危机 (Context Nesting Crisis)**:
 
@@ -293,15 +293,15 @@ $$ \mathrm{run}_B (\text{Artifact}) \quad \xrightarrow{\text{Type Error}} \quad 
 - 签名: $𝒞^L\langle \alpha \to \beta \rangle \to 𝒜^L\langle \alpha \rangle \to 𝒞^L\langle \beta \rangle$
 
 现在我们直接使用 $\mathfrak{M}$ 对解释器进行特化：
-- **函数**: $\text{Interpreter}$ (视为接受源码 $𝒜$ 和输入 $D$ 的函数)
-- **输入**: $\text{Source}$ (具体的源码 AST)
-$$ \text{Code}^T = \mathfrak{M}_M^T(\text{Interpreter}, \text{Source}) $$
+- **函数**: $\text{interpreter}$ (视为接受源码 $𝒜$ 和输入 $D$ 的函数)
+- **输入**: $\text{source}$ (具体的源码 AST)
+$$ \text{code}^T = \mathfrak{M}_M^T(\text{interpreter}, \text{source}) $$
 *结果*: 固定了源码的解释器 $\equiv$ 目标代码。
 
 **第二映射 (生成编译器)**
 目标：生成一个独立的编译器。
 
-为了实现这一点，我们需要将部分求值算法本身实现为一个目标语言中的程序，即 **特化程序 ($\text{Mix}$)**。
+为了实现这一点，我们需要将部分求值算法本身实现为一个目标语言中的程序，即 **特化程序 ($\text{mix}$)**。
 - **类型**: $𝒞^L\langle 𝒜^L \to \text{StaticInput} \to 𝒜^L \rangle$
 - **假设**: 此处假设目标语言 $L$ 具备表示自身 AST 的能力 (如 Lisp 或具有反射能力的语言)，或者我们通过外部手段将宿主 AST 映射为目标数据结构。
 - **说明**: 
@@ -309,29 +309,29 @@ $$ \text{Code}^T = \mathfrak{M}_M^T(\text{Interpreter}, \text{Source}) $$
     - 第二个参数 ($\text{StaticInput}$) 是编译期已知的静态输入数据。
     - 返回值 ($𝒜^L$) 是特化后的残差程序 AST。
 
-在此阶段，我们将 **特化程序 ($\text{Mix}$)** 作为被操作的对象。
+在此阶段，我们将 **特化程序 ($\text{mix}$)** 作为被操作的对象。
 
-$$ \text{Compiler}_M^T = \mathfrak{M}_M^M(\text{Mix}, \text{InterpreterSrc}) $$
+$$ \text{compiler}_M^T = \mathfrak{M}_M^M(\text{mix}, \text{interpreterSrc}) $$
 
-**深度解析：为什么 Mix 算子可以作用于 Mix 项？**
-观察 $\mathfrak{M}$ 的签名与 $\text{Mix}$ 的类型，我们可以发现它们完美的类型匹配：
+**深度解析：为什么 Mix 算子可以作用于 mix 项？**
+观察 $\mathfrak{M}$ 的签名与 $\text{mix}$ 的类型，我们可以发现它们完美的类型匹配：
 1.  **算子要求**: $\mathfrak{M}$ 需要一个函数代码 $𝒞\langle \alpha \to \beta \rangle$ 和一个参数值 $\alpha$。
-2.  **程序提供**: $\text{Mix}$ 本身就是一个代码项，其类型为 $𝒞\langle 𝒜^L \to (\text{StaticInput} \to 𝒜^L) \rangle$。
+2.  **程序提供**: $\text{mix}$ 本身就是一个代码项，其类型为 $𝒞\langle 𝒜^L \to (\text{StaticInput} \to 𝒜^L) \rangle$。
     - 这里泛型 $\alpha$ 被实例化为 $𝒜^L$ (AST)。
-3.  **输入匹配**: 我们提供的 $\text{InterpreterSrc}$ 恰好是一个 AST 值。
-4.  **结论**: $\mathfrak{M}(\text{Mix}, \text{InterpreterSrc})$ 合法，返回值的类型为 $𝒞\langle \text{StaticInput} \to 𝒜^L \rangle$。
+3.  **输入匹配**: 我们提供的 $\text{interpreterSrc}$ 恰好是一个 AST 值。
+4.  **结论**: $\mathfrak{M}(\text{mix}, \text{interpreterSrc})$ 合法，返回值的类型为 $𝒞\langle \text{StaticInput} \to 𝒜^L \rangle$。
     - 这个返回值的物理含义是：一个接受“静态输入”（即源代码）并输出“残差程序 AST”的函数。
     - 这在 MDTT 架构中对应于**编译器的前端与优化器** (从源码到特化 AST)。
-    - 若要得到产出二进制目标代码的完整编译器，需将运行该生成器得到的结果接入 `emit` 阶段：$\lambda s. \mathrm{emit}(\mathrm{run}(\text{Compiler}) s)$。
+    - 若要得到产出二进制目标代码的完整编译器，需将运行该生成器得到的结果接入 `emit` 阶段：$\lambda s. \mathrm{emit}(\mathrm{run}(\text{compiler}) s)$。
 
 **第三映射 (生成编译器生成器 / Cogen)**
 目标：生成一个能自动将解释器转换为编译器的工具。
-$$ \text{Cogen}_M = \mathfrak{M}_M^M(\text{Mix}, \text{MixSrc}) $$
+$$ \text{cogen}_M = \mathfrak{M}_M^M(\text{mix}, \text{mixSrc}) $$
 *含义*:
-- **Function**: $\text{Mix}$ (运行中的部分求值器代码)。
-- **Input**: $\text{MixSrc}$ (作为数据的部分求值器源码 AST)。
+- **Function**: $\text{mix}$ (运行中的部分求值器代码)。
+- **Input**: $\text{mixSrc}$ (作为数据的部分求值器源码 AST)。
 *结果*: 返回一个新的函数。这个函数接受一个“静态输入”（这里即“解释器源码”），输出“残差程序”（即该解释器对应的编译器）。
-这是一个编译器生成器：$\text{InterpreterSrc} \to \text{Compiler}$。
+这是一个编译器生成器：$\text{interpreterSrc} \to \text{compiler}$。
 
 
 ### 7.4 编译器自举 (Compiler Bootstrapping)

@@ -31,8 +31,8 @@ MDTT 是一个用于形式化描述元编程、编译器架构及异构计算的
 
 **Host 下标 (Subscript):**
 
-- **默认省略**: 在单机/单宿主环境下，默认指代当前宿主 $M$ 。
-- **显式书写**: 仅在涉及跨宿主操作（如分布式计算、交叉编译、代码传输 $𝒞_{M_1} \to 𝒞_{M_2}$ ）时使用。
+- **类型构造**: 默认省略。在单机/单宿主环境下，默认指代当前宿主 $M$ 。
+- **跨层算子**: **必须显式书写**。对于 `run` (执行) 和 `lift` (提升) 等跨越 $M/L$ 边界的操作，必须标注下标以明确**操作的发起者** (Driver)。
 
 **Target 上标 (Superscript):**
 
@@ -120,16 +120,17 @@ $$
 ### 5.4 提升 (Lifting)
 
 $$
-\uparrow^L : \forall \tau : \text{Liftable}. \tau^M \to 𝒞^L\langle \tau \rangle
+\uparrow_M^L : \forall \tau : \text{Liftable}. \tau^M \to 𝒞^L\langle \tau \rangle
 $$
 
 将宿主值嵌入为目标代码。
+- **语义**: Host $M$ 将本地值序列化并注入到 Target $L$ 的代码空间中。
 - **约束**: 仅适用于满足 `Liftable` 的类型。
 
 ### 5.5 特化 (Mix)
 
 $$
-\mathfrak{M}^L : 𝒞^L\langle \alpha \to \beta \rangle \to \alpha^L \to 𝒞^L\langle \beta \rangle
+\mathfrak{M}_M^L : 𝒞^L\langle \alpha \to \beta \rangle \to \alpha^L \to 𝒞^L\langle \beta \rangle
 $$
 
 编译期特化 (Partial Evaluation)。
@@ -139,10 +140,11 @@ $$
 ### 5.6 运行 (Run)
 
 $$
-\mathrm{run}^L : 𝒞^L\langle \tau \rangle \to ℰ\langle \tau^M \rangle
+\mathrm{run}_M^L : 𝒞^L\langle \tau \rangle \to ℰ\langle \tau^M \rangle
 $$
 
 异构执行。
+- **语义**: Host $M$ 发起对 Target $L$ 代码的执行请求，并等待结果返回 $M$。
 - **副作用**: 当 $M \neq L$ 时，此操作包含 **Marshalling** (数据编组), **Offloading** (任务卸载), **Remote Execution** (远程执行) 以及 **Result Retrieval** (结果回传) 等复杂过程。
 
 ## 6. 二村映象 (Futamura Projections)
@@ -193,17 +195,17 @@ $$
 
 ### T-Lift
 $$
-\frac{\Gamma \vdash v : \tau^M \quad \tau \in \text{Liftable}}{\Gamma \vdash \uparrow^L v : 𝒞^L\langle \tau \rangle}
+\frac{\Gamma \vdash v : \tau^M \quad \tau \in \text{Liftable}}{\Gamma \vdash \uparrow_M^L v : 𝒞^L\langle \tau \rangle}
 $$
 
 ### T-Mix
 $$
-\frac{\Gamma \vdash f : 𝒞^L\langle \alpha \to \beta \rangle \quad \Gamma \vdash x : \alpha^L}{\Gamma \vdash \mathfrak{M}^L(f, x) : 𝒞^L\langle \beta \rangle}
+\frac{\Gamma \vdash f : 𝒞^L\langle \alpha \to \beta \rangle \quad \Gamma \vdash x : \alpha^L}{\Gamma \vdash \mathfrak{M}_M^L(f, x) : 𝒞^L\langle \beta \rangle}
 $$
 
 ### T-Run
 $$
-\frac{\Gamma \vdash c : 𝒞^L\langle \tau \rangle \quad M \succeq L}{\Gamma \vdash \mathrm{run}^L(c) : ℰ\langle \tau^M \rangle}
+\frac{\Gamma \vdash c : 𝒞^L\langle \tau \rangle \quad M \succeq L}{\Gamma \vdash \mathrm{run}_M^L(c) : ℰ\langle \tau^M \rangle}
 $$
 
 <!--

@@ -6,7 +6,7 @@ MDTT is a formal framework for metaprogramming and compiler architectures. It ex
 ### Core Concepts
 - **Heterogeneity**: Separation of execution environments.
 - **Duality**: Separation of analyzable AST and safe, opaque Code.
-- **Full Pipeline**: Formalizing parsing, checking, and evaluation with error handling.
+- **Formal Semantics**: Using Dependent Types (DT) to capture implementation details (environment dependencies, staging constraints, effects), turning compiler architecture problems into type checking problems.
 
 ## File Structure
 - `README.md`: Main specification and theoretical foundation.

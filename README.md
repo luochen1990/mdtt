@@ -37,21 +37,17 @@ MDTT 将“平台”(Platform) 视为类型系统的一个核心索引。
 
 标准形式： $X_{\mathrm{Host}}^{\mathrm{Target}}\langle \mathrm{Type} \rangle$
 
-### 3.1 隐式与显式规则 (Implicit/Explicit Rules)
+该记法本质上是泛型参数的**简化标记 (Syntactic Sugar)**，用于避免在尖括号 $\langle \dots \rangle$ 中罗列过多的泛型参数，从而提高公式的可读性。
 
-**Host 下标 (Subscript):**
+### 3.1 参数含义与省略 (Parameters & Omission)
 
-- **类型构造**: 默认省略。在单机/单宿主环境下，默认指代当前宿主 $M$ 。
-- **跨层算子**: **必须显式书写**。对于 `lift` (提升) 等跨越 $M/L$ 边界的操作，必须标注下标以明确**操作的发起者** (Driver)。`run` (执行) 操作默认针对当前宿主 $M$。
+- **上标 (Superscript)**: 通常代表 **Target** (目标语言/平台)。
+- **下标 (Subscript)**: 通常代表 **Host** (宿主语言/平台)。
 
-**Target 上标 (Superscript):**
-
-- **显式保留**: 推荐始终标注，以清晰区分源语言 ( $S$ )、目标语言 ( $T$ ) 和元语言 ( $M$ )。
-
-**类型上下文继承 (Context Inheritance):**
-
-- **外部**: 在构造器外部， $\tau$ 默认为 $\tau^{M}$ (Host Type)。
-- **内部**: 在带有上标 $L$ 的构造器内部（即 $\langle \dots \rangle$ 中），类型上下文自动切换为 $L$ 。
+**非强制性 (Flexibility)**:
+这并非强制规范，也**不意味着**所有类型都必须拥有这两个参数。
+- 若某对象仅与 Target 相关（如源码 $S^L$），则仅需标注上标。
+- 若某对象仅与 Host 相关（如解释器 $I_M$），则仅需标注下标。
 
 ## 4. 类型构造 (Type Constructors)
 
@@ -249,7 +245,7 @@ $$ (f \ggg g)(x) \equiv f(x) \textbf{ bind } g $$
 为了简化符号，我们正式定义以下函数类型：
 
 *   **Compiler Type**:
-    $$ \text{Compiler}\langle S \to T \rangle \equiv 𝒜^S \to 𝒞^T $$
+    $$ \text{Compiler}\langle S, T \rangle \equiv 𝒜^S \to 𝒞^T $$
 
 *   **Interpreter Type**:
     $$ \text{Interpreter}\langle S \rangle \equiv 𝒜^S \to \text{Input} \to ℰ\langle \text{Output} \rangle $$
@@ -262,7 +258,7 @@ $$ (f \ggg g)(x) \equiv f(x) \textbf{ bind } g $$
 
 我们的目标是构建一个 **crossCompiler**，它运行在 $H$ 上，为 $T$ 生成代码。
 
-$$ \text{goal} : 𝒞^H\langle \text{Compiler}\langle S \to T \rangle \rangle $$
+$$ \text{goal} : 𝒞^H\langle \text{Compiler}\langle S, T \rangle \rangle $$
 
 **MDTT 视角下的三元组关系矩阵**:
 
@@ -275,7 +271,7 @@ $$ \text{goal} : 𝒞^H\langle \text{Compiler}\langle S \to T \rangle \rangle $$
 **构建过程的形式化**:
 
 1.  **toolchain**: $B$ 上的交叉编译器，能够生成 $H$ 的代码。
-    $$ \text{toolchain} : 𝒞^B\langle \text{Compiler}\langle S \to H \rangle \rangle $$
+    $$ \text{toolchain} : 𝒞^B\langle \text{Compiler}\langle S, H \rangle \rangle $$
 2.  **source**: 目标编译器的源码，逻辑上是定义了一个从“任意输入源码”到“$T$ 平台代码”的转换。
     $$ \text{source} : 𝒜^S \quad (\text{Logic: } 𝒮 \to 𝒞^T) $$
 3.  **build**: 在 $B$ 机器上，用 $\text{toolchain}$ 编译 $\text{source}$。
@@ -359,7 +355,7 @@ $$ \text{cogen}_M = \mathfrak{M}_M^M(\text{mix}, \text{mixSrc}) $$
 
 1.  **Stage 0 (Snapshot / Bootstrap Compiler)**:
     我们需要一个起点。通常是上一版本的二进制文件，已存在于 $M$ 上。
-    $$ \text{rustc}_{0} : 𝒞^M\langle \text{Compiler}\langle S \to M \rangle \rangle $$
+    $$ \text{rustc}_{0} : 𝒞^M\langle \text{Compiler}\langle S, M \rangle \rangle $$
 
 2.  **Stage 1 (Intermediate Compiler)**:
     用旧编译器 $\text{rustc}_0$ 编译新源码 `rustc_src`。
@@ -376,7 +372,7 @@ $$ \text{cogen}_M = \mathfrak{M}_M^M(\text{mix}, \text{mixSrc}) $$
 $$ \text{rustc}_{3} = \mathrm{run}_M( \text{rustc}_{2}, \text{rustc\_src} ) $$
 在确定性编译的前提下，必须满足：
 $$ \text{rustc}_{2} \equiv \text{rustc}_{3} \quad (\text{Bitwise Equivalence}) $$
-MDTT 的类型系统在此过程中保证了每一阶段输入输出的类型一致性 ($\text{Compiler}_M^M$)，确保了自举链条没有发生阶段错配（例如错误地使用了 Stage 0 的库来链接 Stage 2 的二进制）。
+MDTT 的类型系统在此过程中保证了每一阶段输入输出的类型一致性 ($\text{Compiler}\langle S, M \rangle$)，确保了自举链条没有发生阶段错配（例如错误地使用了 Stage 0 的库来链接 Stage 2 的二进制）。
 
 <!--
 Copyright © 2026 罗宸 (luochen1990@gmail.com, chen@luo.xyz, https://blog.coding.lc)

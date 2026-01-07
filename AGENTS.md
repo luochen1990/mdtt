@@ -17,5 +17,5 @@ MDTT is a formal framework for metaprogramming and compiler architectures. It ex
 
 ## Technical Decisions
 - **Latex for Formalization**: Using LaTeX for all type rules and operators to ensure mathematical precision.
-- **Standardized Notation**: $X_{\text{Host}}^{\text{Target}}\langle \text{Type} \rangle$ as the universal notation format.
+- **Standardized Notation**: $X_{\text{Host}}^{\text{Target}}\langle \text{Type} \rangle$ as syntactic sugar for generic parameters (Host/Target).
 

@@ -57,10 +57,11 @@ $$
 ### 4.2 Raw AST (Structural)
 
 $$
-𝒜_{\text{raw}}^L
+𝒜^L
 $$
 
-- **定义**: 未经类型检查的语法树。
+- **定义**: 未经类型检查的语法树 (Untyped AST)。
+- **记法**: 当 $𝒜$ 不带类型参数 $\langle \tau \rangle$ 时，特指 Raw AST。
 - **性质**: 宿主数据结构，可能包含类型错误。
 
 ### 4.3 Typed AST (Validated)
@@ -94,7 +95,7 @@ $$
 ### 5.1 解析 (Parsing)
 
 $$
-\mathrm{parse} : 𝒮^L \to ℰ\langle 𝒜_{\text{raw}}^L \rangle
+\mathrm{parse} : 𝒮^L \to ℰ\langle 𝒜^L \rangle
 $$
 
 将文本转换为原始结构。
@@ -102,7 +103,7 @@ $$
 ### 5.2 定型 (Elaboration)
 
 $$
-\mathrm{elaborate} : 𝒜_{\text{raw}}^L \to ℰ\langle \Sigma \tau. 𝒜^L\langle \tau \rangle \rangle
+\mathrm{elaborate} : 𝒜^L \to ℰ\langle \Sigma \tau. 𝒜^L\langle \tau \rangle \rangle
 $$
 
 类型推导与检查。
@@ -180,12 +181,12 @@ $$
 
 ### T-Parse
 $$
-\frac{\Gamma \vdash s : 𝒮^L}{\Gamma \vdash \mathrm{parse}(s) : ℰ\langle 𝒜_{\text{raw}}^L \rangle}
+\frac{\Gamma \vdash s : 𝒮^L}{\Gamma \vdash \mathrm{parse}(s) : ℰ\langle 𝒜^L \rangle}
 $$
 
 ### T-Elaborate
 $$
-\frac{\Gamma \vdash a : 𝒜_{\text{raw}}^L}{\Gamma \vdash \mathrm{elaborate}(a) : ℰ\langle \Sigma \tau. 𝒜^L\langle \tau \rangle \rangle}
+\frac{\Gamma \vdash a : 𝒜^L}{\Gamma \vdash \mathrm{elaborate}(a) : ℰ\langle \Sigma \tau. 𝒜^L\langle \tau \rangle \rangle}
 $$
 
 ### T-Emit

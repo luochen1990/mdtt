@@ -143,7 +143,7 @@ $$
 $$
 
 编译期特化 (Partial Evaluation)。
-- **语义**: 将静态值 $\alpha$ (在宿主中以 AST $𝒜^L\langle \alpha \rangle$ 的形式存在) “烧录”进函数代码中，生成残差代码。
+- **语义**: 将类型为 $\alpha$ 的静态值 (在宿主中以 AST $𝒜^L\langle \alpha \rangle$ 的形式存在) “烧录”进函数代码中，生成残差代码。
 - **区别**: 不同于运行时的函数调用，`Mix` 在 Code 生成阶段完成，通常不产生动态调用开销。
 
 ### 5.6 运行 (Run)
@@ -265,7 +265,7 @@ $$ \text{Goal} : 𝒞^H\langle \text{Compiler}_{H}^{T} \rangle $$
 1.  **Toolchain**: $B$ 上的交叉编译器，能够生成 $H$ 的代码。
     $$ \text{Toolchain} : \text{Compiler}_B^H $$
 2.  **Source**: 目标编译器的源码，逻辑上是定义了一个从“任意输入源码”到“$T$ 平台代码”的转换。
-    $$ \text{Source} : 𝒜^{\text{Compiler}} \quad (\text{Logic: } 𝒮 \to 𝒞^T) $$
+    $$ \text{Source} : 𝒜^S \quad (\text{Logic: } 𝒮 \to 𝒞^T) $$
 3.  **Build**: 在 $B$ 机器上，用 $\text{Toolchain}$ 编译 $\text{Source}$。
     $$ \text{Artifact} = \mathrm{run}_B \left( \text{Toolchain}, \text{Source} \right) $$
 
@@ -290,7 +290,7 @@ $$ \mathrm{run}_B (\text{Artifact}) \quad \xrightarrow{\text{Type Error}} \quad 
 
 为此，我们引入 **特化算子 ($\mathfrak{M}$)**。
 这是元语言 $M$ 的核心原语（Primitive），负责执行“将静态数据烧录进代码”的动作。
-- 签名: $𝒞^L\langle \alpha \to \beta \rangle \to \alpha^L \to 𝒞^L\langle \beta \rangle$
+- 签名: $𝒞^L\langle \alpha \to \beta \rangle \to 𝒜^L\langle \alpha \rangle \to 𝒞^L\langle \beta \rangle$
 
 现在我们直接使用 $\mathfrak{M}$ 对解释器进行特化：
 - **函数**: $\text{Interpreter}$ (视为接受源码 $𝒜$ 和输入 $D$ 的函数)
@@ -303,6 +303,7 @@ $$ \text{Code}^T = \mathfrak{M}_M^T(\text{Interpreter}, \text{Source}) $$
 
 为了实现这一点，我们需要将部分求值算法本身实现为一个目标语言中的程序，即 **特化程序 ($\text{Mix}$)**。
 - **类型**: $𝒞^L\langle 𝒜^L \to \text{StaticInput} \to 𝒜^L \rangle$
+- **假设**: 此处假设目标语言 $L$ 具备表示自身 AST 的能力 (如 Lisp 或具有反射能力的语言)，或者我们通过外部手段将宿主 AST 映射为目标数据结构。
 - **说明**: 
     - 第一个参数 ($𝒜^L$) 是待特化的源程序 AST。
     - 第二个参数 ($\text{StaticInput}$) 是编译期已知的静态输入数据。
@@ -340,7 +341,7 @@ $$ \text{Cogen}_M = \mathfrak{M}_M^M(\text{Mix}, \text{MixSrc}) $$
 **场景设定**:
 *   **语言**: Rust。
 *   **目标**: 产出最新版的 `rustc` (Stage 2)。
-*   **Source**: `rustc_src` ($𝒜^{\text{Compiler}}$)。这是用 Rust 写的最新版编译器源码。
+*   **Source**: `rustc_src` ($𝒜^S$)。这是用 Rust 写的最新版编译器源码。
 
 **自举三阶段 (The Three Stages)**:
 

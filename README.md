@@ -1,4 +1,4 @@
-# MDTT Specification v0.7
+# MDTT Specification v0.8
 
 **Heterogeneous Multi-stage Dependent Type Theory**
 
@@ -49,6 +49,9 @@ MDTT 将“平台”(Platform) 视为类型系统的一个核心索引。
 - 若某对象仅与 Target 相关（如源码 $S^L$ ），则仅需标注上标。
 - 若某对象仅与 Host 相关（如解释器 $I_M$ ），则仅需标注下标。
 
+**上标的统一语义 (Superscript Semantics)**:
+类型构造器 (如 $𝒞$, $𝒜$, $𝒮$) 的上标统一表示 **"该项所属的可执行世界"** —— 一个语言标签携带其运行平台 (platform)，即 $ℒ$ 中的元素同时充当语言与平台的标识。因此 $𝒞^L\langle \tau \rangle$ 读作"在 $L$ 的世界中可执行的、类型为 $\tau$ 的代码"。特别地，形式推导 $\Gamma \vdash \dots$ 总是在某台物理机器上进行，该机器即 Build 平台 $B$；在推导语境中 $B$ 就是当前宿主 ($B \equiv M$，见 §7.2)。
+
 ## 4. 类型构造 (Type Constructors)
 
 ### 4.1 Source Text (Textual)
@@ -95,6 +98,26 @@ $$
 $$
 
 - **定义**: 表示计算可能失败的上下文 (如 `Result` 或 `Either`)。
+
+### 4.6 共享类型宇宙 (Shared Type Universe)
+
+MDTT 的所有语言共用一套类型语法 $\tau$，即记法 $\langle \tau \rangle$ 中出现的 $\tau$。其文法为：
+
+$$
+\tau ::= \mathbb{N} \mid \mathbb{B} \mid \mathbb{S} \mid \tau \to \tau \mid 𝒞^L\langle \tau \rangle \mid 𝒜^L\langle \tau \rangle \mid 𝒜^L \mid \text{Static} \mid \text{Compiler}\langle S, T \rangle
+$$
+
+- **基础类型**: $\mathbb{N}, \mathbb{B}, \mathbb{S}$。
+- **一等代码与 AST**: 代码类型 $𝒞^L\langle \tau \rangle$ 与 Typed-AST 类型 $𝒜^L\langle \tau \rangle$ 本身也可被指称，即代码与 AST 是"一等类型"。
+- **锚点类型 (Anchors)**: Raw-AST 类型 $𝒜^L$、静态数据类型 $\text{Static}$、编译器接口类型 $\text{Compiler}\langle S, T \rangle$。锚点使宿主级函数类型与 AST 反射得以出现在 $\langle \cdot \rangle$ 中 (服务于 §7.2 的 $𝒞^H\langle \text{Compiler}\langle S,T \rangle \rangle$ 与 §7.3 的反射假设)。
+
+**解释函数 (Interpretation)**: 每个语言 $L$ 对共享类型语法有自己的解释函数 $\llbracket - \rrbracket^L$，将 $\tau$ 映射到 $L$ 的值域。宿主解释记为：
+
+$$
+\tau^M \equiv \llbracket \tau \rrbracket^M
+$$
+
+即 §5 中 $\mathrm{eval}$、$\uparrow$、$\mathrm{run}$ 的签名里出现的 $\tau^M$。本规范只约束算子签名中对解释的使用，不规定各语言解释函数的内部细节。
 
 ## 5. 核心算子与管线 (Operators & Pipeline)
 
@@ -194,7 +217,7 @@ $$
 
 ### T-Mix
 $$
-\frac{\Gamma \vdash f : 𝒞^L\langle \alpha \to \beta \rangle \quad \Gamma \vdash x : 𝒜^L\langle \alpha \rangle}{\Gamma \vdash 𝔐_M^L(f, x) : 𝒞^L\langle \beta \rangle}
+\frac{\Gamma \vdash f : 𝒞^L\langle \alpha \to \beta \rangle \quad \Gamma \vdash x : 𝒜^L\langle \alpha \rangle}{\Gamma \vdash 𝔐_M^L\ f\ x : 𝒞^L\langle \beta \rangle}
 $$
 
 ### T-Run
@@ -224,14 +247,17 @@ $$ (f \ggg g)(x) \equiv f(x) \textbf{ bind } g $$
 
 *   **fullCompiler (完整编译器)**:
     将源代码转化为目标代码。管线：`parse` $\to$ `elaborate` $\to$ `emit`。
-    $$ \text{fullCompiler}_{M}^{T} = \mathrm{parse}^S \ggg \mathrm{elaborate}^S \ggg (\mathrm{pure} \circ \mathrm{emit}_S^T) $$
-    $$ \text{fullCompiler}_{M}^{T} : 𝒮^S \to ℰ\langle 𝒞^T \rangle $$
+    由于 `elaborate` 的输出携带依赖对 $\Sigma \tau$，产物的类型参数由定型结果给出：
+    $$ \text{fullCompiler}_{M}^{T} = \mathrm{parse}^S \ggg \mathrm{elaborate}^S \ggg (\lambda \langle \tau, a \rangle . \mathrm{pure}\ (\mathrm{emit}_S^T\ a)) $$
+    $$ \text{fullCompiler}_{M}^{T} : 𝒮^S \to ℰ\langle \Sigma \tau . 𝒞^T\langle \tau \rangle \rangle $$
 
 *   **fullInterpreter (完整解释器)**:
-    直接执行源代码语义。MDTT 引入基础算子 $\mathrm{eval}_M^S : 𝒜^S\langle \tau \rangle \times \text{Input} \to ℰ\langle \tau \rangle$ 来表示 AST 的求值。
+    直接执行源代码语义。求值算子即 §5.7 的 $\mathrm{eval}_M^S : 𝒜^S\langle \tau \rangle \to ℰ\langle \tau^M \rangle$。
     管线：`parse` $\to$ `elaborate` $\to$ `eval`。
-    $$ \text{fullInterpreter}_{M} = \mathrm{parse}^S \ggg \mathrm{elaborate}^S \ggg \mathrm{eval}_M^S $$
-    $$ \text{fullInterpreter}_{M} : 𝒮^S \times \text{Input} \to ℰ\langle \text{Output} \rangle $$
+    $$ \text{fullInterpreter}_{M} = \mathrm{parse}^S \ggg \mathrm{elaborate}^S \ggg (\lambda \langle \tau, a \rangle . \mathrm{eval}_M^S\ a) $$
+    $$ \text{fullInterpreter}_{M} : 𝒮^S \to ℰ\langle \Sigma \tau . \tau^M \rangle $$
+
+> **注记**: 交互式 (流式 Input/Output) 解释器可通过在纯 `eval` 之上组合 IO 处理得到，属未来扩展，不在本规范范围内。
 
 
 **核心定义 (Core Definitions)**
@@ -244,19 +270,19 @@ $$ (f \ggg g)(x) \equiv f(x) \textbf{ bind } g $$
 
 *   **coreInterpreter (解释器核心)**:
     即管线中的 $\mathrm{eval}$ 阶段。
-    $$ \text{coreInterpreter}_{M} \equiv \mathrm{eval}_M^S : 𝒜^S\langle \tau \rangle \times \text{Input} \to ℰ\langle \tau \rangle $$
+    $$ \text{coreInterpreter}_{M} \equiv \mathrm{eval}_M^S : 𝒜^S\langle \tau \rangle \to ℰ\langle \tau^M \rangle $$
 
 **类型别名 (Type Aliases)**
 
 为了简化符号，我们正式定义以下函数类型：
 
-*   **Compiler Type**:
-    $$ \text{Compiler}\langle S, T \rangle \equiv 𝒜^S \to 𝒞^T $$
+*   **Compiler Type** (类型保持编译):
+    $$ \text{Compiler}\langle S, T \rangle \equiv \forall \tau . 𝒜^S\langle \tau \rangle \to 𝒞^T\langle \tau \rangle $$
 
 *   **Interpreter Type**:
-    $$ \text{Interpreter}\langle S \rangle \equiv 𝒜^S \to \text{Input} \to ℰ\langle \text{Output} \rangle $$
+    $$ \text{Interpreter}\langle S \rangle \equiv \forall \tau . 𝒜^S\langle \tau \rangle \to ℰ\langle \tau^M \rangle $$
 
-> **约定 (Convention)**: 为了简化符号，在后续章节 (7.2 - 7.4) 中，术语 **compiler** 和 **interpreter** 默认指代 **coreCompiler** 和 **coreInterpreter** (作为 Term)，而大写的 **Compiler** 和 **Interpreter** 指代其对应的函数类型。
+> **约定 (Convention)**: $\forall \tau$ 的形式将 **类型保持 (Type Preservation)** 直接表达为类型命题 —— 一个项具有 $\text{Compiler}\langle S, T \rangle$ 类型，当且仅当它把 $S$ 中每个类型为 $\tau$ 的程序映射为 $T$ 中**同类型**的代码。在后续章节 (7.2 - 7.4) 中，术语 **compiler** 和 **interpreter** 默认指代 **coreCompiler** 和 **coreInterpreter** (作为 Term)，而大写的 **Compiler** 和 **Interpreter** 指代其对应的函数类型。
 
 ### 7.2 加拿大交叉编译 (Canadian Cross Compilation)
 
@@ -283,7 +309,7 @@ $$ (f \ggg g)(x) \equiv f(x) \textbf{ bind } g $$
 
 我们的**最终目标**是获得一个运行在 $H$ 上的编译器，它能将语言 $S$ 编译到 $T$ 平台：
 $$ \text{goal} : 𝒞^H\langle \text{Compiler}\langle S, T \rangle \rangle $$
-*(注： $\text{Compiler}\langle S, T \rangle$ 是 7.1 节定义的类型别名，展开为 $𝒜^S \to 𝒞^T$)*
+*(注： $\text{Compiler}\langle S, T \rangle$ 是 7.1 节定义的类型别名，展开为 $\forall \tau . 𝒜^S\langle \tau \rangle \to 𝒞^T\langle \tau \rangle$；它以 §4.6 的锚点类型身份进入 $\langle \cdot \rangle$)*
 
 为了在 $B$ 机器上得到这个 $\text{goal}$，我们需要一个“构建工具 (Builder)”。这个构建工具本身运行在 $B$ 上，它读取编译器的源码 (Source)，并将其编译为能运行在 $H$ 上的机器码。
 
@@ -294,18 +320,18 @@ $$ \text{goal} : 𝒞^H\langle \text{Compiler}\langle S, T \rangle \rangle $$
 > *   $L$ (Implementation Language): **目标编译器本身的编写语言**（编译器的源码）。
 > *   (若 $L=S$ 即为自举；若 $L \neq S$ 则为异构实现)
 
-1.  **Source**: 目标编译器的源代码。
-    $$ \text{source} : 𝒜^L \quad (\text{代码逻辑是 } S \to T) $$
+1.  **Source**: 目标编译器的源代码。它已经过定型 (Elaboration)，被验证为一个"实现 $S \to T$ 编译"的 $L$ 程序 (共享类型宇宙使 $L$ 的类型系统可以直接谈论 $\text{Compiler}\langle S, T \rangle$ 这一锚点类型)。
+    $$ \text{source} : 𝒜^L\langle \text{Compiler}\langle S, T \rangle \rangle $$
 2.  **Builder**: 一个运行在 $B$ 上的编译器（交叉编译器），它能把语言 $L$ 编译成 $H$ 平台的代码。
     $$ \text{builder} : 𝒞^B\langle \text{Compiler}\langle L, H \rangle \rangle $$
 3.  **Process**: 在 $B$ 上执行构建。
     $$ \text{artifact} = \mathrm{run}_B ( \text{builder} ) \text{ source} $$
-    *(注：此处忽略了 monadic bind 细节，意为运行 builder 得到函数后应用于 source)*
+    *(注：此处忽略了 monadic bind 细节，意为运行 builder 得到函数后应用于 source。$\mathrm{run}_B$ 是合法的：推导语境中 $B \equiv M$ (§3.1)，即 builder 是针对当前宿主的代码，满足 T-Run 的同构执行约束。)*
 
 **类型检查 (Type Check)**:
 MDTT 的类型系统能够自动推导 `run` 操作的结果类型：
 $$ \mathrm{run}_B(\text{builder}) : ℰ\langle \underbrace{\text{Compiler}\langle L, H \rangle}_{\text{Builder 逻辑: } L \to H} \rangle $$
-即 $ℰ\langle 𝒜^L \to 𝒞^H \rangle$ 。将其应用到 `source` ($𝒜^L$, 且其逻辑语义为 $S \to T$) 后：
+即 $ℰ\langle \forall \tau . 𝒜^L\langle \tau \rangle \to 𝒞^H\langle \tau \rangle \rangle$ 。将其应用到 `source` ($𝒜^L\langle \text{Compiler}\langle S, T \rangle \rangle$) —— 即在 $\tau := \text{Compiler}\langle S, T \rangle$ 处实例化 —— 后：
 $$ \therefore \text{artifact} : 𝒞^H\langle \text{Compiler}\langle S, T \rangle \rangle $$
 
 这就清晰地解释了为什么我们在 $B$ 上操作，却得到了 $H$ 的类型——因为 `builder` 的**目标属性** ($H$) 决定了产物的**宿主属性** ($H$)。这就是所谓的 "Shift" (转换)。
@@ -320,6 +346,8 @@ $$ \therefore \text{artifact} : 𝒞^H\langle \text{Compiler}\langle S, T \rangl
 ### 7.3 二村映射 (Futamura Projections) 与 MDTT
 
 二村映射通过部分求值 (Partial Evaluation) 连接了解释器与编译器。
+
+**静态值的表示 (Representation of Static Values)**: $𝔐$ 的静态参数以 Typed AST ($𝒜^L\langle \alpha \rangle$) 的形式给出 —— 静态值以其 **引式 (quoted) 表示** 进入特化。此外，本节依赖如下 **反射假设 (Reflection Assumption)**: 目标语言 $L$ 能将自身的 Raw AST 表示为其值 (对应 §4.6 共享类型宇宙中的锚点类型 $𝒜^L$)。这使得"$\text{mix}$ 作用于 $\text{mix}$ 项"在类型上成为可能。
 
 **第一映射 (生成目标代码)**
 目标：将解释器针对特定源码进行特化。
@@ -338,11 +366,11 @@ $ \text{code}^T = 𝔐_M^T(\text{interpreter}, \text{source}) $
 目标：生成一个独立的编译器。
 
 为了实现这一点，我们需要将部分求值算法本身实现为一个目标语言中的程序，即 **特化程序 ($\text{mix}$)**。
-- **类型**: $𝒞^L\langle 𝒜^L \to \text{StaticInput} \to 𝒜^L \rangle$
+- **类型**: $𝒞^L\langle 𝒜^L \to \text{Static} \to 𝒜^L \rangle$
 - **假设**: 此处假设目标语言 $L$ 具备表示自身 AST 的能力 (如 Lisp 或具有反射能力的语言)，或者我们通过外部手段将宿主 AST 映射为目标数据结构。
 - **说明**: 
     - 第一个参数 (类型 $𝒜^L$) 是待特化的源程序 AST。
-    - 第二个参数 (类型 $\text{StaticInput}$) 是编译期已知的静态输入数据。
+    - 第二个参数 (类型 $\text{Static}$) 是编译期已知的静态输入数据。
     - 返回值 (类型 $𝒜^L$) 是特化后的残差程序 AST。
 
 在此阶段，我们将 **特化程序 ($\text{mix}$)** 作为被操作的对象。
@@ -352,10 +380,10 @@ $ \text{compiler}_M^T = 𝔐_M^M(\text{mix}, \text{interpreterSrc}) $
 **深度解析：为什么 Mix 算子可以作用于 mix 项？**
 观察 $𝔐$ 的签名与 $\text{mix}$ 的类型，我们可以发现它们完美的类型匹配：
 1.  **算子要求**: $𝔐$ 需要一个函数代码 $𝒞\langle \alpha \to \beta \rangle$ 和一个参数值 $\alpha$。
-2.  **程序提供**: $\text{mix}$ 本身就是一个代码项，其类型为 $𝒞\langle 𝒜^L \to (\text{StaticInput} \to 𝒜^L) \rangle$。
+2.  **程序提供**: $\text{mix}$ 本身就是一个代码项，其类型为 $𝒞\langle 𝒜^L \to (\text{Static} \to 𝒜^L) \rangle$。
     - 这里泛型 $\alpha$ 被实例化为 $𝒜^L$ (AST)。
 3.  **输入匹配**: 我们提供的 $\text{interpreterSrc}$ 恰好是一个 AST 值。
-4.  **结论**: $𝔐(\text{mix}, \text{interpreterSrc})$ 合法，返回值的类型为 $𝒞\langle \text{StaticInput} \to 𝒜^L \rangle$。
+4.  **结论**: $𝔐(\text{mix}, \text{interpreterSrc})$ 合法，返回值的类型为 $𝒞\langle \text{Static} \to 𝒜^L \rangle$。
     - 这个返回值的物理含义是：一个接受“静态输入”（即源代码）并输出“残差程序 AST”的函数。
     - 这在 MDTT 架构中对应于**编译器的前端与优化器** (从源码到特化 AST)。
     - 若要得到产出二进制目标代码的完整编译器，需将运行该生成器得到的结果接入 `emit` 阶段： $\lambda s. \mathrm{emit}_S^T(\mathrm{run}_M(\text{compiler}) s)$。（注：此处忽略了 Monad 包装）。

@@ -1,0 +1,6 @@
+name = "Mdtt"
+version = "0.1.0"
+defaultTargets = ["Mdtt"]
+
+[[lean_lib]]
+name = "Mdtt"

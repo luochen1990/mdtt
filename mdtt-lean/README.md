@@ -4,13 +4,36 @@
 > "可执行 DSL" 方式使用 MDTT 概念的开发者; T2 实例 (Mdtt/Stlc.*) 的维护者.
 > 实现细节与设计决策见本目录 [AGENTS.md](AGENTS.md) (维护者向).
 
-本项目分两层:
+本项目把 MDTT 规范 (v0.8) 形式化为**两层**:
 
-- **T1 (Mdtt/Model.lean 等)**: 规范 §4/§5 的签名级形式化. `Model` 记录打包一个
-  "多阶段世界" 的全部签名与语义锚点; §6 七条定型规则与 §7 四个架构案例
-  (管线 / 加拿大交叉编译 / 二村映射 / 自举) 全部 transcription 为对任意 Model 成立的定义与定理.
-- **T2 (Mdtt/Sttc/*.lean)**: 构造 `stlcModel : Model` 的具体实例 (STLC 目标语言,
-  真实 parse/elaborate/eval/emit), 证明签名可被真实满足.
+- **T1 (Mdtt/Model.lean + Rules/Pipeline/CanadianCross/Futamura/Bootstrapping)**:
+  规范 §4/§5 的签名级形式化. `Model` 记录打包一个"多阶段世界"的全部签名与语义锚点;
+  §6 七条定型规则与 §7 四个架构案例全部转录为**对任意 Model 成立**的定义与定理 ——
+  若规范内部不一致, 这里无法通过编译 (它已经抓到并推动修正了 v0.7 的 5 处问题).
+- **T2 (Mdtt/Stlc/*)**: 构造 `stlcModel : Model` 的具体实例 (STLC + 反射构造子),
+  parse/elaborate/eval(NbE)/emit/lift/mix 均为真实实现, 语义锚点以 `rfl` 兑现,
+  证明 T1 的全部签名可被真实满足.
+
+## 快速上手
+
+```sh
+just check        # lake build: 类型检查全部形式化 + 跑全部测试 (CI 即此命令)
+nix develop       # 开发 shell (elan + just; Lean 版本由 lean-toolchain 固定)
+```
+
+体验 MDTT 管线 (在 Lean 文件 / REPL 中):
+
+```lean
+import Mdtt
+open Mdtt Mdtt.Stlc
+
+-- 完整解释器管线 (§7.1): 文本 → 解析 → 定型 → NbE 求值
+#eval (fullInterpreter stlcModel .stlc "((lambda (x : Nat) (+ x 1)) 41)")
+  -- Except.ok ⟨Ty.nat, 42⟩
+
+-- 类型保持编译器别名 (§7.1): ∀τ 的形式即类型保持命题
+#check (Compiler stlcModel .stlc .stlc)
+```
 
 ## 符号映射表 (规范 → Lean)
 
@@ -31,17 +54,18 @@
 | $𝔐_M^L$ (mix) | `m.mix L` | §5.5 |
 | $\mathrm{run}_M$ | `m.run` | §5.6 |
 | $\mathrm{eval}_M^L$ | `m.eval L` | §5.7 |
-| $\ggg$ (Kleisli) | `≫` (`Model.kleisli`) | §7.1 |
+| $\ggg$ (Kleisli) | `≫` (`Mdtt.kleisli`) | §7.1 |
 | $\text{Compiler}⟨S,T⟩$ / $\text{Interpreter}⟨S⟩$ | `Compiler m S T` / `Interpreter m S` | §7.1 |
+| $\text{goal}: 𝒞^H⟨\text{Compiler}⟨S,T⟩⟩$ (加拿大交叉) | `Goal m S H T` / `buildArtifact` | §7.2 |
 | quote (反射原语) | `m.quote L` | §7.3 |
 | 反射假设 (Raw AST 嵌入) | `m.embed_raw L` | §7.3 |
+| 自举不动点 | `boot_fixpoint` | §7.4 |
 
-## 使用
+## 测试策略
 
-```sh
-just check        # lake build, 类型检查全部形式化
-nix develop       # 进入开发 shell (elan + just)
-```
+- **内核级** (`rfl`): 定型规则、emit 往返、eval 全定义性、mix/quote/embed_raw/二村映射
+  —— 类型检查通过即等于内核验证的证明;
+- **编译期执行** (`native_decide`): 全管线 (tokenize→parse→elaborate→NbE)
+  —— 因内核对 String 操作归约代价过高, 走编译器执行, 断言仍纳入 `just check` 门禁。
 
-Toolchain Notes: Lean 版本由 `lean-toolchain` (v4.30.0) 权威固定, 由 elan 解析;
-系统无全局默认工具链也不影响 (lake 会按 lean-toolchain 自动拉取).
+实现细节、逻辑契约与已知简化见 [AGENTS.md](AGENTS.md)。

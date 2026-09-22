@@ -13,6 +13,8 @@ import Mdtt.Model
 
 -/
 
+namespace Mdtt
+
 
 open Mdtt
 
@@ -35,3 +37,5 @@ def buildArtifact {S L H T : m.lang}
     (builder : Builder L H) : ℰ (Goal S H T) := do
   let f ← m.run builder
   pure (m.unrollCompiler L H f (Ty.compiler (m.lang_id S) (m.lang_id T)) source)
+
+end Mdtt

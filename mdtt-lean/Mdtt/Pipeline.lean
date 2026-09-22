@@ -8,6 +8,8 @@ import Mdtt.Model
 
 -/
 
+namespace Mdtt
+
 
 open Mdtt
 
@@ -33,3 +35,5 @@ def coreCompiler (S T : m.lang) {τ : Ty} : m.tast S τ → m.code T τ := m.emi
 
 /-- §7.1 核心定义: coreInterpreter ≡ eval. -/
 def coreInterpreter (S : m.lang) {τ : Ty} : m.tast S τ → ℰ (m.sem m.host τ) := m.eval S
+
+end Mdtt

@@ -12,6 +12,8 @@ T1 形式化的两个发现 (已反馈到规范 v0.8):
 
 -/
 
+namespace Mdtt
+
 
 open Mdtt
 
@@ -48,3 +50,5 @@ def futamura3 (L : m.lang)
     (mixPgm : m.code L (.arr (Ty.raw (m.lang_id L)) (.arr Ty.static (Ty.raw (m.lang_id L)))))
     (mixSrc : m.raw L) : m.code L (.arr Ty.static (Ty.raw (m.lang_id L))) :=
   m.mix L mixPgm (m.embed_raw L mixSrc)
+
+end Mdtt

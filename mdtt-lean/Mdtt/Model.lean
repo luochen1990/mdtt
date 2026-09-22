@@ -35,7 +35,7 @@ inductive Ty where
   | raw (L : String)
   | static
   | compiler (S T : String)
-  deriving Repr
+  deriving Repr, DecidableEq
 
 /-- 一个 MDTT 模型: 语言宇宙 + 宿主 + 类型构造器 + 算子 + 语义锚点 (规范 §4/§5 的签名级转录).
 
@@ -90,9 +90,14 @@ structure Model where
   sem_ast : ∀ (L : lang) (τ : Ty), sem host (.ast (lang_id L) τ) = tast L τ
   /-- 语义锚点: 宿主读到 L-Raw-AST 值 -/
   sem_raw : ∀ (L : lang), sem host (.raw (lang_id L)) = raw L
-  /-- 语义锚点: 编译器接口类型的宿主解释 (§7.1 类型别名) -/
-  sem_compiler : ∀ (S T : lang),
-    sem host (.compiler (lang_id S) (lang_id T)) = (∀ τ : Ty, tast S τ → code T τ)
+  /-- 语义锚点 (函数对): 编译器接口类型的宿主解释 (§7.1 类型别名).
+
+  以 unroll/roll 函数对而非类型等式给出 —— 允许模型将编译器载体实现为抽象类型
+  (如 T2 的 CompilerCarrier 包装), 比 Eq 锚点更宽容; 二者为互逆双射. -/
+  unroll_compiler : ∀ (S T : lang),
+    sem host (.compiler (lang_id S) (lang_id T)) → (∀ τ : Ty, tast S τ → code T τ)
+  roll_compiler : ∀ (S T : lang),
+    (∀ τ : Ty, tast S τ → code T τ) → sem host (.compiler (lang_id S) (lang_id T))
 
 namespace Model
 
@@ -104,7 +109,7 @@ def applyArr (m : Model) {L : m.lang} {a b : Ty}
 /-- 展开 𝒞^M⟨Compiler⟨S,T⟩⟩ 运行结果的函数性 (§7.2 类型检查的关键一步). -/
 def unrollCompiler (m : Model) (S T : m.lang) :
     m.sem m.host (.compiler (m.lang_id S) (m.lang_id T)) → (∀ τ : Ty, m.tast S τ → m.code T τ) :=
-  cast (m.sem_compiler S T)
+  m.unroll_compiler S T
 
 end Model
 

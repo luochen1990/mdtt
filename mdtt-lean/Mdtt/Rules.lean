@@ -8,6 +8,8 @@ Lean 签名的一致性 (T1 层的价值所在: 规则若与签名冲突, 这里
 
 -/
 
+namespace Mdtt
+
 
 open Mdtt
 
@@ -35,3 +37,5 @@ def tRun {τ : Ty} (c : m.code m.host τ) : ℰ (m.sem m.host τ) := m.run c
 
 /-- T-Eval (§6): Γ ⊢ a : 𝒜^L⟨τ⟩ ⊢ eval_M^L(a) : ℰ⟨τ^M⟩ -/
 def tEval (L : m.lang) {τ : Ty} (a : m.tast L τ) : ℰ (m.sem m.host τ) := m.eval L a
+
+end Mdtt

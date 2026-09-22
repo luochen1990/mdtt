@@ -15,7 +15,6 @@ T1 形式化的两个发现 (已反馈到规范 v0.8):
 namespace Mdtt
 
 
-open Mdtt
 
 variable {m : Model}
 

@@ -35,6 +35,27 @@ def MLang.tag : MLang → String
   | .host => "host"
   | .stlc => "stlc"
 
+/-- 两语言的 Tast 载体: stlc 用 Typed AST, host 即宿主值 (宿主程序即宿主值). -/
+def mlTast (L : MLang) : Ty → Type :=
+  match L with
+  | .stlc => fun τ => Term [] τ
+  | .host => hostSem
+
+/-- 两语言的 Code 载体: stlc 代码为序列化文本 (黑盒), host 代码为活的宿主计算. -/
+def mlCode (L : MLang) : Ty → Type :=
+  match L with
+  | .stlc => fun _ => String
+  | .host => fun τ => ℰ (hostSem τ)
+
+/-- 统一发射分派 (2×2 语言矩阵), 是模型语义约定的结构化身:
+lift/eval/unroll_compiler 均为 mlEmit 在特定语言参数处的实例 (定义性相等) ——
+"stlc→host 的 emit 即现在就解释运行" 由构造保证 eval = emit(·, host). -/
+def mlEmit : (S T : MLang) → (τ : Ty) → mlTast S τ → mlCode T τ
+  | .stlc, .stlc, _, t => emitStlc t
+  | .stlc, .host, _, t => evalClosed t
+  | .host, .stlc, τ, v => liftStlc τ v
+  | .host, .host, _, v => pure v
+
 /-- T2 主交付: MDTT 模型的 STLC 实例. -/
 def stlcModel : Model where
   lang := MLang
@@ -44,12 +65,8 @@ def stlcModel : Model where
   raw := fun
     | .stlc => SExpr
     | .host => String
-  tast := fun
-    | .stlc, τ => Term [] τ
-    | .host, τ => hostSem τ
-  code := fun
-    | .stlc, _ => String
-    | .host, τ => ℰ (hostSem τ)
+  tast := mlTast
+  code := mlCode
   sem := fun _ τ => hostSem τ
   liftable := fun
     | .nat | .bool | .str => True
@@ -63,25 +80,15 @@ def stlcModel : Model where
   elaborate := fun
     | .stlc, r => elaborateStlc r
     | .host, _ => .error "elaborate: host raw unsupported in stlcModel"
-  emit := fun S T {_τ} t =>
-    match S, T with
-    | .stlc, .stlc => emitStlc t
-    | .stlc, .host => evalClosed t
-    | .host, .stlc => liftStlc _ t
-    | .host, .host => pure t
-  lift := fun L {_τ} _h v =>
-    match L with
-    | .stlc => liftStlc _ v
-    | .host => pure v
+  emit := fun S T {_} t => mlEmit S T _ t
+  /- lift = emit(host→L), eval = emit(L→host): 由 mlEmit 的矩阵分派定义性给出. -/
+  lift := fun L {_τ} _h v => mlEmit .host L _ v
+  eval := fun L {_} t => mlEmit L .host _ t
   mix := fun L {_ _} f x =>
     match L with
     | .stlc => mixStlc f x
     | .host => f <*> pure x
   run := fun c => c
-  eval := fun L {_} t =>
-    match L with
-    | .stlc => evalClosed t
-    | .host => pure t
   quote := fun L {_} t =>
     match L with
     | .stlc => Term.quoted t
@@ -100,12 +107,7 @@ def stlcModel : Model where
   sem_raw := fun
     | .stlc => rfl
     | .host => rfl
-  unroll_compiler := fun S T _ τ t =>
-    match S, T with
-    | .stlc, .stlc => emitStlc t
-    | .stlc, .host => evalClosed t
-    | .host, .stlc => liftStlc τ t
-    | .host, .host => pure t
+  unroll_compiler := fun _ _ _ τ t => mlEmit _ _ τ t
   roll_compiler := fun _ _ _ => ()
 
 end Mdtt

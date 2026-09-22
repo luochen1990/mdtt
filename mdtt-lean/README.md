@@ -27,13 +27,20 @@ nix develop       # 开发 shell (elan + just; Lean 版本由 lean-toolchain 固
 import Mdtt
 open Mdtt Mdtt.Stlc
 
--- 完整解释器管线 (§7.1): 文本 → 解析 → 定型 → NbE 求值
-#eval (fullInterpreter stlcModel .stlc "((lambda (x : Nat) (+ x 1)) 41)")
-  -- Except.ok ⟨Ty.nat, 42⟩
+-- 完整解释器管线 (§7.1) 的类型: 𝒮^S → ℰ⟨Στ. τ^M⟩ (应用后)
+#check (fullInterpreter stlcModel .stlc "((lambda (x : Nat) (+ x 1)) 41)")
+  -- ℰ (Σ τ : Ty, stlcModel.sem stlcModel.host τ)
 
--- 类型保持编译器别名 (§7.1): ∀τ 的形式即类型保持命题
+-- 值级求值: 借助 Tests.lean 的 Nat 投影辅助 (结果 42)
+example : interpNat "((lambda (x : Nat) (+ x 1)) 41)" = "42" := by native_decide
+
+-- 类型保持编译器别名 (§7.1): 其定义展开即 ∀τ. 𝒜^S⟨τ⟩ → 𝒞^T⟨τ⟩
 #check (Compiler stlcModel .stlc .stlc)
+  -- Compiler stlcModel MLang.stlc MLang.stlc : Type  (定义见 Pipeline.lean)
 ```
+
+(注: `Σ` 依赖对无 `Repr` 实例, 全管线 `#eval` 需如上投影辅助; 内核级与
+编译期执行两级测试策略见下文"测试策略"。)
 
 ## 符号映射表 (规范 → Lean)
 

@@ -176,7 +176,7 @@ $
 ### 5.6 运行 (Run)
 
 $$
-\mathrm{run}_M : 𝒞^M\langle \tau \rangle \to ℰ\langle \tau \rangle
+\mathrm{run}_M : 𝒞^M\langle \tau \rangle \to ℰ\langle \tau^M \rangle
 $$
 
 同构执行。
@@ -222,7 +222,7 @@ $$
 
 ### T-Run
 $$
-\frac{\Gamma \vdash c : 𝒞^M\langle \tau \rangle}{\Gamma \vdash \mathrm{run}_M(c) : ℰ\langle \tau \rangle}
+\frac{\Gamma \vdash c : 𝒞^M\langle \tau \rangle}{\Gamma \vdash \mathrm{run}_M(c) : ℰ\langle \tau^M \rangle}
 $$
 
 ### T-Eval
@@ -428,6 +428,12 @@ $ \text{cogen}_M = 𝔐_M^M(\text{mix}, \text{mixSrc}) $
 $$ \text{rustc}_{3} = \mathrm{run}_M( \text{rustc}_{2}, \text{rustc\_src} ) $$
 在确定性编译的前提下，必须满足：
 $$ \text{rustc}_{2} \equiv \text{rustc}_{3} \quad (\text{Bitwise Equivalence}) $$
+
+> **注记 (v0.8, 来自形式化)**: 确定性编译本身只保证 $\text{rustc}_3$ 是良定义的函数结果
+> ($\text{rustc}_3 = \mathrm{run}(\text{rustc}_2, \text{src})$ 而 $\text{rustc}_2 = \mathrm{run}(\text{rustc}_1, \text{src})$，
+> 两者输入不同)，**不直接蕴含**不动点等式。真正需要的是更强的 **自举稳定性 (Bootstrapping
+> Stability)** 假设： 用产物重新编译同一源码，产物比特级不变。Lean 形式化
+> (mdtt-lean) 将其作为显式前提编码 (见 `Bootstrapping.lean`).
 MDTT 的类型系统在此过程中保证了每一阶段输入输出的类型一致性 ($\text{Compiler}\langle S, M \rangle$)，确保了自举链条没有发生阶段错配（例如错误地使用了 Stage 0 的库来链接 Stage 2 的二进制）。
 
 

@@ -14,7 +14,6 @@ T1 形式化的发现: 规范将 rustc₂ ≡ rustc₃ 归因于"确定性编译
 namespace Mdtt
 
 
-open Mdtt
 
 variable {m : Model} (L : m.lang)
 
@@ -23,13 +22,13 @@ variable {m : Model} (L : m.lang)
 abbrev Rustc : Type := m.code m.host (Ty.compiler (m.lang_id L) (m.lang_id m.host))
 
 /-- 自举源码: 用 L 编写的、已定型为 Compiler⟨L,M⟩ 的编译器源程序.
-自举即 S = L 的特例 (规范 §7.4 场景中 L = Rust, S = M = 宿主). -/
+自举即 S = L 的特例 (规范 §7.4 场景中 L = S = Rust, T = M = 宿主). -/
 abbrev RustcSrc : Type := m.tast L (Ty.compiler (m.lang_id L) (m.lang_id m.host))
 
 /-- 自举单步: rustc_{n+1} = run(rustc_n, rustc_src) (§7.4). -/
 def bootStep (c : Rustc L) (src : RustcSrc L) : ℰ (Rustc L) := do
   let f ← m.run c
-  pure (m.unrollCompiler L m.host f (Ty.compiler (m.lang_id L) (m.lang_id m.host)) src)
+  pure (m.unroll_compiler L m.host f (Ty.compiler (m.lang_id L) (m.lang_id m.host)) src)
 
 /-- Stage 1 → Stage 2: 用旧编译器产物再编译一次. -/
 def boot2 (c0 : Rustc L) (src : RustcSrc L) : ℰ (Rustc L) :=

@@ -92,26 +92,13 @@ structure Model where
   sem_raw : ∀ (L : lang), sem host (.raw (lang_id L)) = raw L
   /-- 语义锚点 (函数对): 编译器接口类型的宿主解释 (§7.1 类型别名).
 
-  以 unroll/roll 函数对而非类型等式给出 —— 允许模型将编译器载体实现为抽象类型
-  (如 T2 的 CompilerCarrier 包装), 比 Eq 锚点更宽容; 二者为互逆双射. -/
+  以 unroll/roll 函数对而非类型等式给出 —— 允许模型将编译器载体实现为抽象/令牌类型.
+  双射性 (unroll∘roll = id) 是**推荐契约而非强制**; T2 的 stlcModel 即以见证令牌
+  载体平凡满足 roll (见 Stlc/Model.lean 的简化声明). roll 字段服务于契约完整性. -/
   unroll_compiler : ∀ (S T : lang),
     sem host (.compiler (lang_id S) (lang_id T)) → (∀ τ : Ty, tast S τ → code T τ)
   roll_compiler : ∀ (S T : lang),
     (∀ τ : Ty, tast S τ → code T τ) → sem host (.compiler (lang_id S) (lang_id T))
-
-namespace Model
-
-/-- 在函数语义锚点上应用: ⟦α→β⟧^L 的值作用于 ⟦α⟧^L 的值. -/
-def applyArr (m : Model) {L : m.lang} {a b : Ty}
-    (f : m.sem L (.arr a b)) (x : m.sem L a) : m.sem L b :=
-  cast (m.sem_arr L a b) f x
-
-/-- 展开 𝒞^M⟨Compiler⟨S,T⟩⟩ 运行结果的函数性 (§7.2 类型检查的关键一步). -/
-def unrollCompiler (m : Model) (S T : m.lang) :
-    m.sem m.host (.compiler (m.lang_id S) (m.lang_id T)) → (∀ τ : Ty, m.tast S τ → m.code T τ) :=
-  m.unroll_compiler S T
-
-end Model
 
 /-- Kleisli 组合 (§7.1): (f ≫ g)(x) ≡ f(x) bind g. -/
 def kleisli {α β γ : Type} (f : α → ℰ β) (g : β → ℰ γ) : α → ℰ γ := fun a => (f a).bind g

@@ -13,6 +13,10 @@ MDTT is a formal framework for metaprogramming and compiler architectures. It ex
 
 ## File Structure
 - `README.md`: Main specification and theoretical foundation.
+- `mdtt-lean/`: Lean 4 formalization of this spec (signature-level + STLC instance).
+  - **Hook**: 修改本规范 (README.md) 的任何签名/记法/规则时, 必须先读
+    `mdtt-lean/README.md` (接口与符号映射表), 并同步更新其 `Model` 定义与测试 ——
+    规范与形式化代码互为 SSOT, 由 `just check` (即 `lake build`) 守护一致性。
 - `MSP.md`: Analysis of Multi-stage Programming concepts and comparison with other tools.
 
 ## Technical Decisions

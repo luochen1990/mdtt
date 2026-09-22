@@ -430,6 +430,16 @@ $$ \text{rustc}_{3} = \mathrm{run}_M( \text{rustc}_{2}, \text{rustc\_src} ) $$
 $$ \text{rustc}_{2} \equiv \text{rustc}_{3} \quad (\text{Bitwise Equivalence}) $$
 MDTT 的类型系统在此过程中保证了每一阶段输入输出的类型一致性 ($\text{Compiler}\langle S, M \rangle$)，确保了自举链条没有发生阶段错配（例如错误地使用了 Stage 0 的库来链接 Stage 2 的二进制）。
 
+
+## 8. Lean 4 形式化 (Formalization)
+
+本规范有两个层次的机器检查实现，位于 `mdtt-lean/` （Lean 4）：
+
+- **签名级 (T1)**: §4/§5 的全部类型构造器与算子签名、§6 定型规则、§7 四个架构案例，形式化为对任意 `Model` 成立的定义与定理 —— 规范内部的一致性由 Lean 类型检查器守护。
+- **实例级 (T2)**: `stlcModel` 提供 STLC 目标语言的具体实例（真实的解析/定型/NbE 求值/序列化），证明全部签名可被真实满足。
+
+用法与符号映射见 [mdtt-lean/README.md](mdtt-lean/README.md)。
+
 <!--
 Copyright © 2026 罗宸 (luochen1990@gmail.com, chen@luo.xyz, https://blog.coding.lc)
 -->

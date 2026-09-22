@@ -53,7 +53,9 @@ T1 五个案例文件仅依赖 Model.lean。禁止反向依赖。
      `sexprStr` 的 `where goSpaces` 即为此改造);
    - 勿用 `String.toNat?` / `String.drop` 等对内核不透明的核心函数
      (用 `List Char` 自实现, 如 `strToNat?`/`strLitBody`);
-   - 求值器对 SExpr/Term **结构递归**, 解析器用**燃料** (token 流消耗非结构可证)。
+   - 求值器对 SExpr/Term **结构递归**, 解析器用**燃料** (token 流消耗非结构可证);
+   - `hostSem τ` 等非 reducible def 之上的类型类综合 (OfNat/ToString/HAdd) 会失败,
+     须以 `@id Nat x` 之类强制 defeq 归约 (见 `liftStlc` 的注释)。
 3. **TAST 即索引归纳族**: `Term : List Ty → Ty → Type`, de Bruijn 良作用域,
    类型安全由构造保证 (eval 全定义性 `rfl` 即得, zero-overhead safety)。
 4. **quote 仅限闭环项** (`quoted : Term [] τ → Term Γ (ast τ)`):
@@ -68,6 +70,7 @@ T1 五个案例文件仅依赖 Model.lean。禁止反向依赖。
 | roundtrip | 语料级 rfl (tId/tAdd/tHO) | 一般定理 (按深度命名不变量归纳) |
 | §7.2 stlcModel 演示 | 依赖编译器载体忠实建模, 暂缺 | 随载体建模补齐 |
 | eval 的 IO 交互 | 纯 eval (规范 v0.8 注记) | IO 组合层 |
+| 字符串字面量词法 | 不支持内嵌空格/括号/冒号 (按词法切分), 空串与普通串可用 | 转义词法 |
 
 ## 行为准则
 
@@ -76,4 +79,6 @@ T1 五个案例文件仅依赖 Model.lean。禁止反向依赖。
 - 修改规范 (README.md) 时**必须**同步 Model.lean 的签名与符号映射表 (README.md),
   反之亦然 —— 规范与代码互为 SSOT。
 - 提交前 `just check` 全绿零警告; 新增算子行为必须有 Tests.lean 对应断言。
+- `native_decide` example 由编译器执行背书 (生成 per-declaration axiom),
+  **不属内核保证**; 能 `rfl` 的优先 `rfl`。
 - 命名: 类型 PascalCase, 项 snake_case (Lean 惯例); 文件头部注明职责边界与对应规范章节。

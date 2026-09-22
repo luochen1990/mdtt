@@ -11,7 +11,6 @@ import Mdtt.Model
 namespace Mdtt
 
 
-open Mdtt
 
 variable (m : Model)
 

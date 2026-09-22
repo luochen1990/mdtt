@@ -38,8 +38,8 @@ def hasTyIdx : HasTy Γ τ → Nat
 
 /-- Term → SExpr (结构序列化).
 绑定名按**深度**生成 (v0, v1, ...): 深度 d 处引入的绑定名为 v{d},
-深度 d' 处索引为 i 的变量回指绑定 v{d' - i - 1} —— 同一程序内永不重名,
-保证 parse∘elaborate 往返的唯一解析. -/
+深度 d' 处索引为 i 的变量回指绑定 v{d' - i - 1} —— 同一作用域路径内永不重名
+(兄弟分支可同名, 查找按分支独立, 不引入歧义), 保证 parse∘elaborate 往返唯一解析. -/
 def toSExprAux : (d : Nat) → Term Γ τ → SExpr
   | d, .var i => .atom s!"v{d - hasTyIdx i - 1}"
   | _, .lit n => .atom (toString n)
@@ -67,7 +67,9 @@ where goSpaces : List SExpr → String
 def emitStlc (t : Term [] τ) : String := sexprStr (toSExprAux 0 t)
 
 /-- 宿主值 → stlc 代码字面量 (规范 §5.4 lift 的 stlc 分支).
-非基础类型降级为 `(foreign)` 占位 (黑盒性, 见文件头). -/
+非基础类型降级为 `(foreign)` 占位 (黑盒性, 见文件头).
+注: `@id Nat n` 是强制 defeq 归约的 trick —— `hostSem τ` 非 reducible def,
+ToString 实例综合不展开它, 须先归约到具体类型. -/
 def liftStlc : (τ : Ty) → hostSem τ → String
   | .nat, n => toString (@id Nat n)
   | .bool, b => if @id Bool b then "#t" else "#f"

@@ -11,6 +11,8 @@ T1 形式化的发现: 规范将 rustc₂ ≡ rustc₃ 归因于"确定性编译
 
 -/
 
+namespace Mdtt
+
 
 open Mdtt
 
@@ -48,3 +50,5 @@ theorem boot_fixpoint (c0 r1 r2 : Rustc L) (src : RustcSrc L)
   have e3 : boot3 L c0 src = .ok r2 := by
     unfold boot3; rw [e2]; exact stable
   rw [e3, e2]
+
+end Mdtt
